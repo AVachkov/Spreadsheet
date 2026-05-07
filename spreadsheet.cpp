@@ -3,59 +3,62 @@
 #include <fstream>
 #include <iostream>
 
-Spreadsheet::Spreadsheet()
+Spreadsheet::Spreadsheet() : is_open(false)
 {
 }
 
 void Spreadsheet::open(const std::string &_fileName)
 {
+    if (is_open)
+    {
+        std::cout << "File " << fileName << "already opened. To open another file, first close the current one.\n";
+        return;
+    }
+
     if (_fileName.empty())
         throw "File name cannot be empty.\n";
 
     fileName = _fileName;
-    file.open(fileName);
-
+    std::ifstream file(fileName);
     if (!file.is_open())
+    {
         file.open(fileName, std::ios::out);
+        return;
+    }
 
-    if (!deserialize())
-        throw "Couldn't deserialize file.";
-
-    if (file.is_open())
+    if (deserialize(file))
+    {
         std::cout << "Successfully opened " << fileName << '\n';
+        is_open = true;
+    }
+    else
+        throw "Couldn't deserialize file.\n";
 }
 
 void Spreadsheet::close()
 {
     for (std::vector<Cell> &row : cells)
-    {
         row.clear();
-    }
     cells.clear();
-
-    if (!file.is_open())
-    {
-        fileName = "";
-        return;
-    }
 
     std::cout << "Successfully closed " << fileName << '\n';
     fileName = "";
-    file.close();
+    is_open = false;
 }
 
-void Spreadsheet::save()
+void Spreadsheet::save() const
 {
-    if (!file.is_open())
+    if (!is_open)
         return;
 
-    file.clear();
-    serialize(file);
+    std::ofstream ofs(fileName);
+    ofs.clear();
+    serialize(ofs);
 }
 
-void Spreadsheet::saveas(const std::string &_fileName)
+void Spreadsheet::saveas(const std::string &_fileName) const
 {
-    if (!file.is_open())
+    if (!is_open)
         return;
 
     if (_fileName.empty())
@@ -84,7 +87,7 @@ void Spreadsheet::exit() const
 
 bool Spreadsheet::serialize(std::ostream &out) const
 {
-    if (!file.is_open())
+    if (!is_open)
         return false;
 
     for (const std::vector<Cell> &row : cells)
@@ -104,51 +107,190 @@ bool Spreadsheet::serialize(std::ostream &out) const
     return true;
 }
 
-bool Spreadsheet::deserialize()
+bool Spreadsheet::deserialize(std::istream &in)
 {
-    if (!file.is_open())
+    if (!is_open)
         return false;
 
-    std::vector<std::string> lines;
-    while (!file.eof())
-    {
-        std::string line;
-        std::getline(file, line);
+    std::vector<Cell> row;
+    std::string data;
 
-        lines.push_back(line);
+    char ch;
+    while (in.get(ch))
+    {
+        if (ch == ',')
+        {
+            processCell(data, row);
+            data.clear();
+        }
+        else if (ch == '\n')
+        {
+            processCell(data, row);
+            cells.push_back(row);
+            data.clear();
+            row.clear();
+        }
+        else
+        {
+            data += ch;
+        }
     }
 
-    for (const std::string &line : lines)
+    // if the file didn't end with \n
+    if (!data.empty())
     {
-        std::string part;
-        // part.reserve(line.size());
-        std::vector<Cell> currentRow;
-        for (size_t i = 0; i < line.size(); ++i)
+        processCell(data, row);
+        cells.push_back(row);
+    }
+
+    int longestCell = cells[0].size();
+    for (const std::vector<Cell> &r : cells)
+    {
+        if (r.size() > longestCell)
+            longestCell = r.size();
+    }
+
+    for (std::vector<Cell> &r : cells)
+    {
+        while (r.size() < longestCell)
         {
-            if (line[i] == ',')
-            {
-                // extracted part
-                // parse part. add to cells
-
-                if (part.empty())
-                {
-                    Cell cell;
-                    currentRow.push_back(cell);
-                }
-
-                if (part[0] == '=')
-                {
-                    // save as formula
-                }
-                part = "";
-            }
-            else
-            {
-                part += line[i];
-            }
+            Cell empty;
+            r.push_back(empty);
         }
-        cells.push_back(currentRow);
     }
 
     return true;
 }
+
+void Spreadsheet::processCell(std::string &data, std::vector<Cell> &row)
+{
+    trim(data);
+    Number number;
+    if (data.empty())
+    {
+        Cell cell;
+        row.push_back(cell);
+    }
+    else if (data[0] == '=')
+    {
+        // formula
+    }
+    else if (isNumber(data, number))
+    {
+        if (number == Number::WHOLE_NUMBER)
+        {
+            int wholeNumber = std::stoi(data); // stringToInt(data);
+            Cell cell(wholeNumber);
+            row.push_back(cell);
+        }
+        else if (number == Number::DECIMAL_NUMBER)
+        {
+            double decimalNumber = std::stod(data); // stringToDouble(data);
+            Cell cell(decimalNumber);
+            row.push_back(cell);
+        }
+    }
+    else
+    {
+        Cell cell(data);
+        row.push_back(cell);
+    }
+}
+
+bool Spreadsheet::isNumber(const std::string &str, Number &number)
+{
+    number = Number::NONE;
+    if (str.empty())
+        return false;
+
+    size_t start = 0;
+    if (str[0] == '-')
+        start = 1;
+
+    int dots = 0;
+    for (size_t i = start; i < str.size(); ++i)
+    {
+        if (!isDigit(str[i]) && str[i] != '.')
+            return false;
+
+        if (str[i] == '.')
+            ++dots;
+
+        if (dots > 1)
+            return false;
+    }
+
+    if (str != ".")
+    {
+        if (dots == 0)
+            number = Number::WHOLE_NUMBER;
+        else
+            number = Number::DECIMAL_NUMBER;
+
+        return true;
+    }
+
+    return false;
+}
+
+bool Spreadsheet::isDigit(char c)
+{
+    return c >= '0' && c <= '9';
+}
+
+void Spreadsheet::trim(std::string &str)
+{
+    if (str.empty())
+        return;
+
+    int i = 0;
+    while (i < str.size() && !isLetterOrSymbol(str[i]))
+    {
+        if (str[i] == ' ' || str[i] == '\n' || str[i] == '\t')
+            str.erase(i, 1);
+        else
+            ++i;
+    }
+
+    i = str.size() - 1;
+    while (i >= 0 && !isLetterOrSymbol(str[i]))
+    {
+        if (str[i] == ' ' || str[i] == '\n' || str[i] == '\t')
+            str.erase(i, 1);
+
+        --i;
+    }
+}
+
+bool Spreadsheet::isLetterOrSymbol(char c)
+{
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+           (c >= '!' && c <= '@') || (c >= '[' && c <= '`') || (c >= '{' && c <= '~');
+}
+
+// int Spreadsheet::stringToInt(const std::string &s)
+// {
+//     bool negative = false;
+//     int result = 0;
+//     for (char c : s)
+//     {
+//         if (c == '-')
+//         {
+//             negative = true;
+//         }
+//         else
+//         {
+//             result *= 10;
+//             result += (c - '0');
+//         }
+//     }
+
+//     if (negative)
+//         result = -result;
+
+//     return result;
+// }
+
+// double Spreadsheet::stringToDouble(const std::string &s)
+// {
+// }

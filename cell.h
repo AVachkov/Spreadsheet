@@ -23,8 +23,7 @@ public:
     Cell(const std::string &);
     Cell(const Formula &);
 
-    friend std::ostream &
-    operator<<(std::ostream &, const Cell &);
+    friend std::ostream &operator<<(std::ostream &, const Cell &);
 
 private:
     int wholeNumber;
@@ -33,7 +32,5 @@ private:
     Formula formula;
     DefinedType definedType;
 };
-
-std::ostream &operator<<(std::ostream &, const Cell &);
 
 #endif
