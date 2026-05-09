@@ -1,27 +1,26 @@
 #ifndef CELL_H
 #define CELL_H
 
-#include <string>
 #include "formula.h"
+#include "baseTypes.h"
+#include "functions.h"
+#include <string>
 #include <iostream>
-
-enum class DefinedType
-{
-    NONE,
-    WHOLE_NUMBER,
-    DECIMAL_NUMBER,
-    TEXT,
-    FORMULA
-};
 
 class Cell
 {
 public:
-    Cell();
-    Cell(int);
-    Cell(double);
-    Cell(const std::string &);
-    Cell(const Formula &);
+    Cell(Address);
+    Cell(Address, int);
+    Cell(Address, double);
+    Cell(Address, const std::string &);
+    Cell(Address, const Formula &);
+
+    int getWholeNumber() const;
+    double getDecimalNumber() const;
+    std::string getText() const;
+    Formula getFormula() const;
+    DefinedType getType() const;
 
     friend std::ostream &operator<<(std::ostream &, const Cell &);
 
@@ -30,7 +29,9 @@ private:
     double decimalNumber;
     std::string text;
     Formula formula;
+
     DefinedType definedType;
+    Address address;
 };
 
 #endif

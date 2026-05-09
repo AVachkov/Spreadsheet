@@ -24,24 +24,11 @@ private:
     std::string fileName;
     bool is_open;
 
-    bool serialize(std::ostream &) const;
-    bool deserialize(std::istream &);
+    void serialize(std::ostream &) const;
+    void deserialize(std::istream &);
 
-    static void processCell(std::string &, std::vector<Cell> &);
-
-    enum Number
-    {
-        NONE,
-        WHOLE_NUMBER,
-        DECIMAL_NUMBER
-    };
-
-    static bool isNumber(const std::string &, Number &number);
-    static bool isDigit(char);
-    static void trim(std::string &);
-    static bool isLetterOrSymbol(char);
-    // static int stringToInt(const std::string &);
-    // static double stringToDouble(const std::string &);
+    void processCell(std::string &, std::vector<Cell> &, size_t);
+    static void processBackslashInText(std::string &);
 };
 
 #endif
