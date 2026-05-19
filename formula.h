@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include <functional>
+// #include <list>
 
 class Cell; // because of circular file problem
 
@@ -12,8 +13,9 @@ class Formula
 {
 public:
     Formula();
-    Formula(const std::string &, std::vector<std::vector<Cell>> *);
+    Formula(const std::string &_formula, std::vector<std::vector<Cell>> *_cells);
 
+    Number getResult() const;
     bool isValid() const;
 
 private:
@@ -23,19 +25,17 @@ private:
     bool is_valid;
     Number result;
 
-    bool solveFormula(const std::string &, std::vector<std::vector<Cell>> *);
-    bool isAddressValid(Address) const;
-    bool processOperations(std::vector<Number> &, std::vector<char> &);
+    bool solveFormula(const std::string &_formula, std::vector<std::vector<Cell>> *_cells, Number &outRes);
 
-    static bool isOperator(char);
-
-    static void executeSingleOperation(char, const std::function<Number(Number, Number)> &, std::vector<Number> &, std::vector<char> &); // better do it with std::list
-
-    static Number sum(Number, Number);
-    static Number difference(Number, Number);
-    static Number multiplication(Number, Number);
-    static Number division(Number, Number);
-    static Number power(Number, Number);
+    // solveFormula helpers:
+    static void clearAllWhitespaces(std::string &s);
+    static bool isOperator(char c);
+    bool parseAddress(Address address, Number &n) const;
+    bool isAddressValid(Address a) const;
+    static bool processOperations(std::vector<Number> &numbers, std::vector<char> &operators);
+    static void executeSingleOperation(char op, const std::function<Number(Number, Number)> &binOp, std::vector<Number> &numbers, std::vector<char> &operators);
 };
+
+std::ostream &operator<<(std::ostream &out, const Formula &formula);
 
 #endif

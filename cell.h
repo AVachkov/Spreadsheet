@@ -3,26 +3,23 @@
 
 #include "formula.h"
 #include "baseTypes.h"
-#include "functions.h"
 #include <string>
 #include <iostream>
 
 class Cell
 {
 public:
-    Cell(Address);
-    Cell(Address, int);
-    Cell(Address, double);
-    Cell(Address, const std::string &);
-    Cell(Address, const Formula &);
+    Cell(Address _address);
+    Cell(Address _address, int _wholeNumber);
+    Cell(Address _address, double _decimalNumber);
+    Cell(Address _address, const std::string &_text);
+    Cell(Address _address, const Number &n);
 
     int getWholeNumber() const;
     double getDecimalNumber() const;
     std::string getText() const;
     Formula getFormula() const;
     DefinedType getType() const;
-
-    friend std::ostream &operator<<(std::ostream &, const Cell &);
 
 private:
     int wholeNumber;
@@ -33,5 +30,7 @@ private:
     DefinedType definedType;
     Address address;
 };
+
+std::ostream &operator<<(std::ostream &out, const Cell &cell);
 
 #endif

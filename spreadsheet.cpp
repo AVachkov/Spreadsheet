@@ -1,9 +1,8 @@
 #include "spreadsheet.h"
-#include "formula.h"
-#include "functions.h"
 #include <string>
 #include <fstream>
 #include <iostream>
+#include "utilities.h"
 
 Spreadsheet::Spreadsheet() : is_open(false)
 {
@@ -111,7 +110,7 @@ void Spreadsheet::deserialize(std::istream &in)
         return;
 
     std::vector<Cell> row;
-    std::string data;
+    std::string token;
     size_t rowNumber = 1;
 
     char ch;
@@ -119,27 +118,27 @@ void Spreadsheet::deserialize(std::istream &in)
     {
         if (ch == ',')
         {
-            processCell(data, row, rowNumber);
-            data.clear();
+            processCell(token, row, rowNumber);
+            token.clear();
         }
         else if (ch == '\n')
         {
-            processCell(data, row, rowNumber);
+            processCell(token, row, rowNumber);
             cells.push_back(row);
-            data.clear();
+            token.clear();
             row.clear();
             ++rowNumber;
         }
         else
         {
-            data += ch;
+            token += ch;
         }
     }
 
     // if the file didn't end with \n
-    if (!data.empty())
+    if (!token.empty())
     {
-        processCell(data, row, rowNumber);
+        processCell(token, row, rowNumber);
         cells.push_back(row);
     }
 
@@ -160,24 +159,25 @@ void Spreadsheet::deserialize(std::istream &in)
     }
 }
 
-void Spreadsheet::processCell(std::string &data, std::vector<Cell> &row, size_t rowNumber)
+void Spreadsheet::processCell(std::string &token, std::vector<Cell> &row, size_t rowNumber)
 {
-    Functions::trim(data);
+    trim(token);
     Number number;
-    if (data.empty())
+    if (token.empty())
     {
         Cell cell(Address(rowNumber, row.size() + 1));
         row.push_back(cell);
     }
-    else if (data[0] == '=')
+    else if (token[0] == '=')
     {
-        // formula
-        Formula formula(data, &cells);
+        Formula formula(token, &cells);
         if (formula.isValid())
         {
+            Cell cell(Address(rowNumber, row.size() + 1), formula.getResult());
+            row.push_back(cell);
         }
     }
-    else if (Number::isNumber(data, number))
+    else if (Number::isNumber(token, number))
     {
         if (number.getType() == NumberType::WHOLE_NUMBER)
         {
@@ -192,28 +192,28 @@ void Spreadsheet::processCell(std::string &data, std::vector<Cell> &row, size_t 
     }
     else
     {
-        processBackslashInText(data);
-        Cell cell(Address(rowNumber, row.size() + 1), data);
+        processBackslashInText(token);
+        Cell cell(Address(rowNumber, row.size() + 1), token);
         row.push_back(cell);
     }
 }
 
-void Spreadsheet::processBackslashInText(std::string &data)
+void Spreadsheet::processBackslashInText(std::string &token)
 {
-    if (data.empty())
+    if (token.empty())
         return;
 
     bool backslash = false;
-    for (int i = 0; i < data.size(); ++i)
+    for (int i = 0; i < token.size(); ++i)
     {
-        if ((backslash && data[i] == '\"') || (backslash && data[i] == '\\'))
+        if ((backslash && token[i] == '\"') || (backslash && token[i] == '\\'))
         {
-            data.erase(i - 1, 1);
+            token.erase(i - 1, 1);
             --i;
         }
         backslash = false;
 
-        if (data[i] == '\\')
+        if (token[i] == '\\')
         {
             backslash = true;
         }

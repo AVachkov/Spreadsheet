@@ -2,8 +2,9 @@
 #define BASE_TYPES_H
 
 #include <string>
+#include <iostream>
 
-enum class DefinedType
+enum class DefinedType // rename to CellDefinedType or CellType
 {
     NONE,
     WHOLE_NUMBER,
@@ -12,7 +13,7 @@ enum class DefinedType
     FORMULA
 };
 
-struct Address
+struct Address // stored as actual spreadsheet indices (starting from 1).
 {
     size_t row;
     size_t col;
@@ -38,25 +39,28 @@ public:
     double decimalNumber;
 
     Number();
-    Number(int);
-    Number(double);
+    Number(int _wholeNumber);
+    Number(double _decimalNumber);
+    Number(const std::string &s);
     double getValue() const;
     NumberType getType() const;
 
-    Number &operator=(int);
-    Number &operator=(double);
+    Number &operator=(int w);
+    Number &operator=(double d);
 
-    Number operator+(Number);
-    Number operator-(Number);
-    Number operator*(Number);
-    Number operator/(Number);
-    Number operator^(Number);
+    Number operator+(Number rhs);
+    Number operator-(Number rhs);
+    Number operator*(Number rhs);
+    Number operator/(Number rhs);
+    Number operator^(Number rhs);
 
-    static bool isNumber(const std::string &, Number &);
-    static bool isDigit(char);
+    static bool isNumber(const std::string &str, Number &number);
+    static bool isDigit(char c);
 
 private:
     NumberType type;
 };
+
+std::ostream &operator<<(std::ostream &out, const Number &n);
 
 #endif

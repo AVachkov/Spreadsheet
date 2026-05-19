@@ -1,5 +1,7 @@
 #include "baseTypes.h"
-#include "functions.h" // remove later if we can use std::stoi/std::stod
+#include <string> // for std::stoi, std::stod
+#include <cmath>
+#include <iostream>
 
 Address::Address() : row(1), col(1)
 {
@@ -58,8 +60,8 @@ bool Address::isAddress(const std::string &s, Address &out)
         ++i;
     }
 
-    out.row = row;
-    out.col = col;
+    out.row = row; // +1?
+    out.col = col; // +1?
     return true;
 }
 
@@ -75,14 +77,15 @@ Number::Number(double _decimalNumber) : wholeNumber(0), decimalNumber(_decimalNu
 {
 }
 
-double Number::getValue() const
+Number::Number(const std::string &s) : wholeNumber(0), decimalNumber(0.0), type(NumberType::NONE)
 {
-    if (type == NumberType::DECIMAL_NUMBER)
-        return decimalNumber;
-    if (type == NumberType::WHOLE_NUMBER)
-        return (double)wholeNumber;
-
-    return 0.0;
+    Number n;
+    if (isNumber(s, n))
+    {
+        wholeNumber = n.wholeNumber;
+        decimalNumber = n.decimalNumber;
+        type = n.type;
+    }
 }
 
 NumberType Number::getType() const
@@ -90,15 +93,27 @@ NumberType Number::getType() const
     return type;
 }
 
+double Number::getValue() const
+{
+    if (type == NumberType::WHOLE_NUMBER)
+        return static_cast<double>(wholeNumber);
+    else if (type == NumberType::DECIMAL_NUMBER)
+        return decimalNumber;
+
+    return 0.0;
+}
+
 Number &Number::operator=(int w)
 {
     wholeNumber = w;
+    decimalNumber = 0.0;
     type = NumberType::WHOLE_NUMBER;
     return *this;
 }
 
 Number &Number::operator=(double d)
 {
+    wholeNumber = 0;
     decimalNumber = d;
     type = NumberType::DECIMAL_NUMBER;
     return *this;
@@ -106,6 +121,29 @@ Number &Number::operator=(double d)
 
 Number Number::operator+(Number rhs)
 {
+    return getValue() + rhs.getValue();
+}
+
+Number Number::operator-(Number rhs)
+{
+    return getValue() - rhs.getValue();
+}
+
+Number Number::operator*(Number rhs)
+{
+    return getValue() * rhs.getValue();
+}
+
+Number Number::operator/(Number rhs)
+{
+    if (rhs.getValue() == 0.0)
+        throw "Divide by zero.";
+    return getValue() / rhs.getValue();
+}
+
+Number Number::operator^(Number rhs)
+{
+    return std::pow(getValue(), rhs.getValue());
 }
 
 bool Number::isNumber(const std::string &str, Number &number)
@@ -139,12 +177,12 @@ bool Number::isNumber(const std::string &str, Number &number)
         if (dots == 0)
         {
             number.type = NumberType::WHOLE_NUMBER;
-            number.wholeNumber = Functions::stringToInt(str);
+            number.wholeNumber = std::stoi(str);
         }
         else
         {
             number.type = NumberType::DECIMAL_NUMBER;
-            number.decimalNumber = Functions::stringToDouble(str);
+            number.decimalNumber = std::stod(str);
         }
 
         return true;
@@ -156,4 +194,16 @@ bool Number::isNumber(const std::string &str, Number &number)
 bool Number::isDigit(char c)
 {
     return c >= '0' && c <= '9';
+}
+
+std::ostream &operator<<(std::ostream &out, const Number &n)
+{
+    if (n.getType() == NumberType::WHOLE_NUMBER)
+        out << n.wholeNumber;
+    else if (n.getType() == NumberType::DECIMAL_NUMBER)
+        out << n.decimalNumber;
+    else
+        out << "0";
+
+    return out;
 }
