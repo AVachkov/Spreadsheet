@@ -28,7 +28,7 @@ private:
     void serialize(std::ostream &out) const;
     void deserialize(std::istream &in);
 
-    void processCell(std::string &token, std::vector<Cell> &row, size_t rowNumber);
+    void parseCell(std::string &token, std::vector<Cell> &row, size_t rowNumber);
     static void processBackslashInText(std::string &token);
 };
 

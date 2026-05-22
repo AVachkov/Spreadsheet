@@ -18,17 +18,23 @@ public:
     int getWholeNumber() const;
     double getDecimalNumber() const;
     std::string getText() const;
-    Formula getFormula() const;
-    DefinedType getType() const;
+    Number getFormulaResult() const;
+    CellType getType() const;
+
+    void setContainsAddress(bool flag);
+    void setFormula(std::string f);
 
 private:
+    // Number number
     int wholeNumber;
     double decimalNumber;
     std::string text;
-    Formula formula;
+    std::string formula;
+    Number formulaResult;
 
-    DefinedType definedType;
+    CellType definedType;
     Address address;
+    bool containsAddress;
 };
 
 std::ostream &operator<<(std::ostream &out, const Cell &cell);

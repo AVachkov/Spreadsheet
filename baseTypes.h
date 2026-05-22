@@ -4,7 +4,7 @@
 #include <string>
 #include <iostream>
 
-enum class DefinedType // rename to CellDefinedType or CellType
+enum class CellType
 {
     NONE,
     WHOLE_NUMBER,
@@ -54,8 +54,7 @@ public:
     Number operator/(Number rhs);
     Number operator^(Number rhs);
 
-    static bool isNumber(const std::string &str, Number &number);
-    static bool isDigit(char c);
+    static bool parseNumber(const std::string &str, Number &number); // remove static
 
 private:
     NumberType type;

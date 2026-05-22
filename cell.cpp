@@ -2,34 +2,32 @@
 #include "formula.h"
 #include <iostream>
 
-Cell::Cell(Address _address) : wholeNumber(0), decimalNumber(0.0), text(""), definedType(DefinedType::NONE), address(_address)
+Cell::Cell(Address _address) : wholeNumber(0), decimalNumber(0.0), text(""), formulaResult(), definedType(CellType::NONE), address(_address), containsAddress(false), formula("")
 {
 }
 
 Cell::Cell(Address _address, int _wholeNumber) : wholeNumber(_wholeNumber), decimalNumber(0.0),
-                                                 text(""), definedType(DefinedType::WHOLE_NUMBER),
-                                                 address(_address)
+                                                 text(""), formulaResult(), definedType(CellType::WHOLE_NUMBER),
+                                                 address(_address), containsAddress(false), formula("")
 {
 }
 
 Cell::Cell(Address _address, double _decimalNumber) : wholeNumber(0), decimalNumber(_decimalNumber),
-                                                      text(""), definedType(DefinedType::DECIMAL_NUMBER),
-                                                      address(_address)
+                                                      text(""), formulaResult(), definedType(CellType::DECIMAL_NUMBER), address(_address),
+                                                      containsAddress(false), formula("")
 {
 }
 
 Cell::Cell(Address _address, const std::string &_text) : wholeNumber(0), decimalNumber(0.0),
-                                                         text(_text), definedType(DefinedType::TEXT),
-                                                         address(_address)
+                                                         text(_text), formulaResult(), definedType(CellType::TEXT),
+                                                         address(_address), containsAddress(false), formula("")
 {
 }
 
 Cell::Cell(Address _address, const Number &n) : wholeNumber(0), decimalNumber(0.0),
-                                                text(""), definedType(DefinedType::FORMULA),
-                                                address(_address)
+                                                text(""), formulaResult(n), definedType(CellType::FORMULA),
+                                                address(_address), containsAddress(false), formula("")
 {
-    if (n.getType() == NumberType::WHOLE_NUMBER || n.getType() == NumberType::DECIMAL_NUMBER)
-        wholeNumber = n.getValue();
 }
 
 int Cell::getWholeNumber() const
@@ -47,31 +45,41 @@ std::string Cell::getText() const
     return text;
 }
 
-Formula Cell::getFormula() const
+Number Cell::getFormulaResult() const
 {
-    return formula;
+    return formulaResult;
 }
 
-DefinedType Cell::getType() const
+CellType Cell::getType() const
 {
     return definedType;
+}
+
+void Cell::setContainsAddress(bool flag)
+{
+    containsAddress = flag;
+}
+
+void Cell::setFormula(std::string f)
+{
+    formula = f;
 }
 
 std::ostream &operator<<(std::ostream &out, const Cell &cell)
 {
     switch (cell.getType())
     {
-    case DefinedType::WHOLE_NUMBER:
+    case CellType::WHOLE_NUMBER:
         out << cell.getWholeNumber();
         break;
-    case DefinedType::DECIMAL_NUMBER:
+    case CellType::DECIMAL_NUMBER:
         out << cell.getDecimalNumber();
         break;
-    case DefinedType::TEXT:
+    case CellType::TEXT:
         out << cell.getText();
         break;
-    case DefinedType::FORMULA:
-        out << cell.getFormula();
+    case CellType::FORMULA:
+        out << cell.getFormulaResult();
         break;
     default:
         break;

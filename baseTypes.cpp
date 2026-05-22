@@ -2,6 +2,8 @@
 #include <string> // for std::stoi, std::stod
 #include <cmath>
 #include <iostream>
+#include <exception>
+#include <cctype>
 
 Address::Address() : row(1), col(1)
 {
@@ -38,7 +40,7 @@ bool Address::isAddress(const std::string &s, Address &out)
     size_t i = 1;
     while (i < s.size() && s[i] != 'C')
     {
-        if (!Number::isDigit(s[i]))
+        if (!isdigit(s[i]))
             return false;
 
         row *= 10;
@@ -52,7 +54,7 @@ bool Address::isAddress(const std::string &s, Address &out)
     ++i;
     while (i < s.size())
     {
-        if (!Number::isDigit(s[i]))
+        if (!isdigit(s[i]))
             return false;
 
         col *= 10;
@@ -60,8 +62,8 @@ bool Address::isAddress(const std::string &s, Address &out)
         ++i;
     }
 
-    out.row = row; // +1?
-    out.col = col; // +1?
+    out.row = row;
+    out.col = col;
     return true;
 }
 
@@ -80,7 +82,7 @@ Number::Number(double _decimalNumber) : wholeNumber(0), decimalNumber(_decimalNu
 Number::Number(const std::string &s) : wholeNumber(0), decimalNumber(0.0), type(NumberType::NONE)
 {
     Number n;
-    if (isNumber(s, n))
+    if (parseNumber(s, n))
     {
         wholeNumber = n.wholeNumber;
         decimalNumber = n.decimalNumber;
@@ -137,7 +139,8 @@ Number Number::operator*(Number rhs)
 Number Number::operator/(Number rhs)
 {
     if (rhs.getValue() == 0.0)
-        throw "Divide by zero.";
+        return Number();
+
     return getValue() / rhs.getValue();
 }
 
@@ -146,11 +149,9 @@ Number Number::operator^(Number rhs)
     return std::pow(getValue(), rhs.getValue());
 }
 
-bool Number::isNumber(const std::string &str, Number &number)
+bool Number::parseNumber(const std::string &str, Number &number)
 {
-    number.wholeNumber = 0;
-    number.decimalNumber = 0.0;
-    number.type = NumberType::NONE;
+    number = Number();
 
     if (str.empty())
         return false;
@@ -162,7 +163,7 @@ bool Number::isNumber(const std::string &str, Number &number)
     int dots = 0;
     for (size_t i = start; i < str.size(); ++i)
     {
-        if (!isDigit(str[i]) && str[i] != '.')
+        if (!isdigit(str[i]) && str[i] != '.')
             return false;
 
         if (str[i] == '.')
@@ -189,11 +190,6 @@ bool Number::isNumber(const std::string &str, Number &number)
     }
 
     return false;
-}
-
-bool Number::isDigit(char c)
-{
-    return c >= '0' && c <= '9';
 }
 
 std::ostream &operator<<(std::ostream &out, const Number &n)

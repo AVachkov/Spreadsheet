@@ -118,12 +118,12 @@ void Spreadsheet::deserialize(std::istream &in)
     {
         if (ch == ',')
         {
-            processCell(token, row, rowNumber);
+            parseCell(token, row, rowNumber);
             token.clear();
         }
         else if (ch == '\n')
         {
-            processCell(token, row, rowNumber);
+            parseCell(token, row, rowNumber);
             cells.push_back(row);
             token.clear();
             row.clear();
@@ -138,20 +138,25 @@ void Spreadsheet::deserialize(std::istream &in)
     // if the file didn't end with \n
     if (!token.empty())
     {
-        processCell(token, row, rowNumber);
+        parseCell(token, row, rowNumber);
         cells.push_back(row);
     }
 
-    int longestCell = cells[0].size();
+    //
+
+    if (cells.empty())
+        return;
+
+    int longestRow = cells[0].size();
     for (const std::vector<Cell> &r : cells)
     {
-        if (r.size() > longestCell)
-            longestCell = r.size();
+        if (r.size() > longestRow)
+            longestRow = r.size();
     }
 
     for (size_t i = 0; i < cells.size(); ++i)
     {
-        while (cells[i].size() < longestCell)
+        while (cells[i].size() < longestRow)
         {
             Cell empty(Address(i + 1, cells[i].size() + 1));
             cells[i].push_back(empty);
@@ -159,7 +164,7 @@ void Spreadsheet::deserialize(std::istream &in)
     }
 }
 
-void Spreadsheet::processCell(std::string &token, std::vector<Cell> &row, size_t rowNumber)
+void Spreadsheet::parseCell(std::string &token, std::vector<Cell> &row, size_t rowNumber)
 {
     trim(token);
     Number number;
@@ -168,7 +173,7 @@ void Spreadsheet::processCell(std::string &token, std::vector<Cell> &row, size_t
         Cell cell(Address(rowNumber, row.size() + 1));
         row.push_back(cell);
     }
-    else if (token[0] == '=')
+    else if (token.size() > 0 && token[0] == '=')
     {
         Formula formula(token, &cells);
         if (formula.isValid())
@@ -176,8 +181,13 @@ void Spreadsheet::processCell(std::string &token, std::vector<Cell> &row, size_t
             Cell cell(Address(rowNumber, row.size() + 1), formula.getResult());
             row.push_back(cell);
         }
+        else
+        {
+            Cell cell(Address(rowNumber, row.size() + 1), "ERROR");
+            row.push_back(cell);
+        }
     }
-    else if (Number::isNumber(token, number))
+    else if (Number::parseNumber(token, number))
     {
         if (number.getType() == NumberType::WHOLE_NUMBER)
         {

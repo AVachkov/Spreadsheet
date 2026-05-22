@@ -5,12 +5,13 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <cctype>
 
 Formula::Formula() : formula(""), cells(nullptr), result(), is_valid(false)
 {
 }
 
-Formula::Formula(const std::string &_formula, std::vector<std::vector<Cell>> *_cells) : formula(""), cells(_cells), result(), is_valid(false)
+Formula::Formula(const std::string &_formula, std::vector<std::vector<Cell>> *_cells) : formula("ERROR"), cells(_cells), result(), is_valid(false)
 {
     if (solveFormula(_formula, cells, result))
     {
@@ -34,9 +35,9 @@ bool Formula::solveFormula(const std::string &_formula, std::vector<std::vector<
     outRes = Number();
 
     std::string f = _formula;
-    clearAllWhitespaces(f);
-    if (f.empty() || f.size() < 4)
-        // if shorter than 4 chars - return, because the shortest correct formula is "=a␣SYM␣b", where a,b∈ℝ, SYM∈{+,-,*,/,^}.
+    clearUnnecessaryWhitespaces(f);
+    if (f.empty() || f.size() < 2)
+        // if shorter than 2 chars - return, because the shortest correct formula is "=n" where n∈ℝ.
         return false;
 
     if (f[0] != '=')
@@ -75,28 +76,31 @@ bool Formula::solveFormula(const std::string &_formula, std::vector<std::vector<
             operators.push_back(f[i]);
             ++i;
         }
-
-        std::string data;
-        while (i < f.size() && !isOperator(f[i]))
-        {
-            data += f[i];
-            ++i;
-        }
-
-        Number n;
-        Address address;
-        if (Address::isAddress(data, address))
-        {
-            if (!parseAddress(address, n))
-                return false;
-        }
         else
         {
-            Number::isNumber(data, n);
-        }
+            std::string data;
+            while (i < f.size() && !isOperator(f[i]))
+            {
+                data += f[i];
+                ++i;
+            }
 
-        numbers.push_back(n);
-        data.clear();
+            Number n;
+            Address address;
+            if (Address::isAddress(data, address))
+            {
+                if (!parseAddress(address, n))
+                    return false;
+            }
+            else
+            {
+                if (!Number::parseNumber(data, n))
+                    return false;
+            }
+
+            numbers.push_back(n);
+            data.clear();
+        }
     }
 
     if (processOperations(numbers, operators))
@@ -107,11 +111,34 @@ bool Formula::solveFormula(const std::string &_formula, std::vector<std::vector<
     return false;
 }
 
-void Formula::clearAllWhitespaces(std::string &s)
+void Formula::clearUnnecessaryWhitespaces(std::string &s)
 {
     size_t i = 0;
     while (i < s.size())
     {
+        if (isdigit(s[i]))
+        // skip whitespaces between digits
+        {
+            bool isThereOperatorInBetween = false;
+            int charsBetweenDigits = 0;
+            size_t j = i + 1;
+            while (j < s.size() && !isdigit(s[j]))
+            {
+                if (Formula::isOperator(s[j]))
+                {
+                    isThereOperatorInBetween = true;
+                }
+
+                ++j;
+                ++charsBetweenDigits;
+            }
+
+            if (charsBetweenDigits > 0 && !isThereOperatorInBetween)
+            {
+                i = j;
+            }
+        }
+
         if (isWhitespace(s[i]))
             s.erase(i, 1);
         else
@@ -131,24 +158,17 @@ bool Formula::parseAddress(Address address, Number &n) const
         const Cell &c = (*cells)[address.row - 1][address.col - 1]; // address stored as actual spreadsheet indices (starting from 1).
         switch (c.getType())
         {
-        case DefinedType::WHOLE_NUMBER:
+        case CellType::WHOLE_NUMBER:
             n = c.getWholeNumber();
             break;
-        case DefinedType::DECIMAL_NUMBER:
+        case CellType::DECIMAL_NUMBER:
             n = c.getDecimalNumber();
             break;
-        case DefinedType::FORMULA:
-            if (c.getFormula().result.getType() == NumberType::WHOLE_NUMBER)
-            {
-                n = c.getFormula().result.wholeNumber;
-            }
-            else if (c.getFormula().result.getType() == NumberType::DECIMAL_NUMBER)
-            {
-                n = c.getFormula().result.decimalNumber;
-            }
+        case CellType::FORMULA:
+            n = c.getFormulaResult();
             break;
-        case DefinedType::TEXT:
-        case DefinedType::NONE:
+        case CellType::TEXT:
+        case CellType::NONE:
             n = 0;
         }
         return true;
@@ -163,49 +183,103 @@ bool Formula::isAddressValid(Address a) const
            a.col > 0 && (a.col - 1) < (*cells)[a.row - 1].size();
 }
 
-bool Formula::processOperations(std::vector<Number> &numbers, std::vector<char> &operators)
+bool Formula::processOperations(
+    std::vector<Number> &numbers_from_expression,
+    std::vector<char> &operators_from_expression)
 {
-    // 2 + 3 * 4^2 - 10/5
-    // numbers: 2, 3, 4, 2, 10, 5
-    // operators: +, *, ^, -, /
+    if (numbers_from_expression.size() == 1 && operators_from_expression.size() == 0)
+        return true;
 
-    // 2 + 3 * 16 - 10/5
-    // numbers: 2, 3, 16, 10, 5
-    // operators: +, *, -, /
-
-    if (numbers.size() - operators.size() != 1)
+    if (numbers_from_expression.size() - operators_from_expression.size() != 1)
         return false;
 
-    executeSingleOperation('^', [](Number n1, Number n2)
-                           { return n1 ^ n2; }, numbers, operators);
-    executeSingleOperation('*', [](Number n1, Number n2)
-                           { return n1 * n2; }, numbers, operators);
-    executeSingleOperation('/', [](Number n1, Number n2)
-                           { return n1 / n2; }, numbers, operators);
-    executeSingleOperation('+', [](Number n1, Number n2)
-                           { return n1 + n2; }, numbers, operators);
-    executeSingleOperation('-', [](Number n1, Number n2)
-                           { return n1 - n2; }, numbers, operators);
+    return executeSingleOperator('^', [](Number n1, Number n2)
+                                 { return n1 ^ n2; }, numbers_from_expression, operators_from_expression) &&
+           executeMultipleOperators({'*', '/'}, {[](Number n1, Number n2)
+                                                 { return n1 * n2; }, [](Number n1, Number n2)
+                                                 { return n1 / n2; }},
+                                    numbers_from_expression, operators_from_expression) &&
+           executeSingleOperator('-', [](Number n1, Number n2)
+                                 { return n1 - n2; }, numbers_from_expression, operators_from_expression) &&
+           executeSingleOperator('+', [](Number n1, Number n2)
+                                 { return n1 + n2; }, numbers_from_expression, operators_from_expression);
+}
 
+bool Formula::executeSingleOperator(
+    char op,
+    const binaryFunction &binOp,
+    std::vector<Number> &numbers_from_expression,
+    std::vector<char> &operators_from_expression)
+{
+    if (!isOperator(op))
+        return false;
+
+    size_t i = 0;
+    while (i < operators_from_expression.size())
+    {
+        if (operators_from_expression[i] == op)
+        {
+            numbers_from_expression[i] = binOp(numbers_from_expression[i], numbers_from_expression[i + 1]);
+            if (numbers_from_expression[i].getType() == NumberType::NONE)
+            {
+                return false;
+            }
+            numbers_from_expression.erase(numbers_from_expression.begin() + (i + 1));
+            operators_from_expression.erase(operators_from_expression.begin() + i);
+        }
+        else
+        {
+            ++i;
+        }
+    }
     return true;
 }
 
-void Formula::executeSingleOperation(char op, const std::function<Number(Number, Number)> &binOp, std::vector<Number> &numbers, std::vector<char> &operators) // better do it with std::list
+bool Formula::executeMultipleOperators(
+    const std::vector<char> &operators_to_execute,
+    const std::vector<binaryFunction> &functions_to_execute,
+    std::vector<Number> &numbers_from_expression,
+    std::vector<char> &operators_from_expression)
 {
-    if (!isOperator(op))
-        return;
+    for (char op : operators_to_execute)
+    {
+        if (!isOperator(op))
+            return false;
+    }
+
+    if (operators_to_execute.size() != functions_to_execute.size())
+        return false;
 
     size_t i = 0;
-    while (i < operators.size())
+    while (i < operators_from_expression.size())
     {
-        if (operators[i] == op)
+        char currentOpFromExpr = operators_from_expression[i];
+        int index_of_op_and_func = -1;
+        for (size_t j = 0; j < operators_to_execute.size(); ++j)
         {
-            numbers[i] = binOp(numbers[i], numbers[i + 1]);
-            numbers.erase(numbers.begin() + (i + 1));
-            operators.erase(operators.begin() + i);
+            if (currentOpFromExpr == operators_to_execute[j])
+            {
+                index_of_op_and_func = j;
+            }
         }
-        ++i;
+
+        if (index_of_op_and_func != -1)
+        {
+            const binaryFunction &func = functions_to_execute[index_of_op_and_func];
+            numbers_from_expression[i] = func(numbers_from_expression[i], numbers_from_expression[i + 1]);
+            if (numbers_from_expression[i].getType() == NumberType::NONE)
+            {
+                return false;
+            }
+            numbers_from_expression.erase(numbers_from_expression.begin() + (i + 1));
+            operators_from_expression.erase(operators_from_expression.begin() + i);
+        }
+        else
+        {
+            ++i;
+        }
     }
+    return true;
 }
 
 std::ostream &operator<<(std::ostream &out, const Formula &formula)
