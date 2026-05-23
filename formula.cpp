@@ -1,186 +1,56 @@
 #include "formula.h"
-#include "cell.h"
-#include "baseTypes.h"
-#include "utilities.h"
 #include <vector>
 #include <string>
 #include <iostream>
-#include <cctype>
 
-Formula::Formula() : formula(""), cells(nullptr), result(), is_valid(false)
+Formula::Formula(const std::string &formulaAsText) : formula_as_text(formulaAsText), result(), is_valid(false), contains_address(false)
 {
 }
 
-Formula::Formula(const std::string &_formula, std::vector<std::vector<Cell>> *_cells) : formula("ERROR"), cells(_cells), result(), is_valid(false)
+void Formula::solveFormula(
+    const std::vector<std::string> &tokens_from_expression,
+    std::vector<char> &operators_from_expression,
+    std::function<Number(Address)> getCellValue)
 {
-    if (solveFormula(_formula, cells, result))
-    {
-        formula = _formula;
-        is_valid = true;
-    }
-}
-
-Number Formula::getResult() const
-{
-    return result;
-}
-
-bool Formula::isValid() const
-{
-    return is_valid;
-}
-
-bool Formula::solveFormula(const std::string &_formula, std::vector<std::vector<Cell>> *_cells, Number &outRes)
-{
-    outRes = Number();
-
-    std::string f = _formula;
-    clearUnnecessaryWhitespaces(f);
-    if (f.empty() || f.size() < 2)
-        // if shorter than 2 chars - return, because the shortest correct formula is "=n" where n∈ℝ.
-        return false;
-
-    if (f[0] != '=')
-        return false;
+    is_valid = false;
+    contains_address = false;
 
     std::vector<Number> numbers;
-    std::vector<char> operators;
+    numbers.reserve(tokens_from_expression.size());
 
-    size_t i = 1;
-    if (isOperator(_formula[1]))
-    // handle leading operator for the first number (e.g. -5, +12)
+    for (const std::string &token : tokens_from_expression)
     {
-        if (f[1] != '+' && f[1] != '-')
-            return false;
+        Address a;
+        Number n;
 
-        bool isNegative = f[1] == '-' ? true : false;
-        ++i;
-
-        std::string data;
-        while (i < f.size() && !isOperator(f[i]))
+        if (Address::isAddress(token, a))
         {
-            data += f[i];
-            ++i;
-        }
-        Number n(data);
-        if (isNegative)
-            n = n * -1;
-
-        numbers.push_back(n);
-    }
-
-    while (i < f.size())
-    {
-        if (isOperator(f[i]))
-        {
-            operators.push_back(f[i]);
-            ++i;
-        }
-        else
-        {
-            std::string data;
-            while (i < f.size() && !isOperator(f[i]))
+            contains_address = true;
+            if (getCellValue != nullptr)
             {
-                data += f[i];
-                ++i;
-            }
-
-            Number n;
-            Address address;
-            if (Address::isAddress(data, address))
-            {
-                if (!parseAddress(address, n))
-                    return false;
+                numbers.push_back(getCellValue(a));
             }
             else
             {
-                if (!Number::parseNumber(data, n))
-                    return false;
-            }
-
-            numbers.push_back(n);
-            data.clear();
-        }
-    }
-
-    if (processOperations(numbers, operators))
-    {
-        outRes = numbers[0];
-        return true;
-    }
-    return false;
-}
-
-void Formula::clearUnnecessaryWhitespaces(std::string &s)
-{
-    size_t i = 0;
-    while (i < s.size())
-    {
-        if (isdigit(s[i]))
-        // skip whitespaces between digits
-        {
-            bool isThereOperatorInBetween = false;
-            int charsBetweenDigits = 0;
-            size_t j = i + 1;
-            while (j < s.size() && !isdigit(s[j]))
-            {
-                if (Formula::isOperator(s[j]))
-                {
-                    isThereOperatorInBetween = true;
-                }
-
-                ++j;
-                ++charsBetweenDigits;
-            }
-
-            if (charsBetweenDigits > 0 && !isThereOperatorInBetween)
-            {
-                i = j;
+                return;
             }
         }
-
-        if (isWhitespace(s[i]))
-            s.erase(i, 1);
         else
-            ++i;
-    }
-}
-
-bool Formula::isOperator(char c)
-{
-    return c == '+' || c == '-' || c == '*' || c == '/' || c == '^';
-}
-
-bool Formula::parseAddress(Address address, Number &n) const
-{
-    if (isAddressValid(address))
-    {
-        const Cell &c = (*cells)[address.row - 1][address.col - 1]; // address stored as actual spreadsheet indices (starting from 1).
-        switch (c.getType())
         {
-        case CellType::WHOLE_NUMBER:
-            n = c.getWholeNumber();
-            break;
-        case CellType::DECIMAL_NUMBER:
-            n = c.getDecimalNumber();
-            break;
-        case CellType::FORMULA:
-            n = c.getFormulaResult();
-            break;
-        case CellType::TEXT:
-        case CellType::NONE:
-            n = 0;
+            if (!Number::parseNumber(token, n))
+            {
+                markSyntaxError();
+                return;
+            }
+            numbers.push_back(n);
         }
-        return true;
     }
-    return false;
-}
 
-bool Formula::isAddressValid(Address a) const
-{
-    return cells != nullptr &&
-           a.row > 0 && (a.row - 1) < cells->size() &&
-           a.col > 0 && (a.col - 1) < (*cells)[a.row - 1].size();
+    if (processOperations(numbers, operators_from_expression))
+    {
+        result = numbers[0];
+        is_valid = true;
+    }
 }
 
 bool Formula::processOperations(
@@ -241,7 +111,7 @@ bool Formula::executeMultipleOperators(
     std::vector<Number> &numbers_from_expression,
     std::vector<char> &operators_from_expression)
 {
-    for (char op : operators_to_execute)
+    for (char op : operators_to_execute) // unnecessary?
     {
         if (!isOperator(op))
             return false;
@@ -259,7 +129,7 @@ bool Formula::executeMultipleOperators(
         {
             if (currentOpFromExpr == operators_to_execute[j])
             {
-                index_of_op_and_func = j;
+                index_of_op_and_func = j; // break
             }
         }
 
@@ -282,8 +152,72 @@ bool Formula::executeMultipleOperators(
     return true;
 }
 
+Number Formula::getResult() const
+{
+    return result;
+}
+
+std::string Formula::getFormulaText()
+{
+    return formula_as_text;
+}
+
+bool Formula::isValid() const
+{
+    return is_valid;
+}
+
+bool Formula::containsAddress() const
+{
+    return contains_address;
+}
+
+Formula &Formula::operator=(const std::string &_formulaAsText)
+{
+    formula_as_text = _formulaAsText;
+    return *this;
+}
+
+bool Formula::isOperator(char c)
+{
+    return c == '+' || c == '-' || c == '*' || c == '/' || c == '^';
+}
+
+void Formula::markSyntaxError()
+{
+    formula_as_text.clear();
+    is_valid = false;
+    contains_address = false;
+    result = 0;
+}
+
 std::ostream &operator<<(std::ostream &out, const Formula &formula)
 {
     out << formula.getResult();
     return out;
 }
+
+// bool Formula::parseAddress(Address address, Number &n) const
+// {
+//     if (isAddressValid(address))
+//     {
+//         const Cell &c = (*cells)[address.row - 1][address.col - 1]; // address stored as actual spreadsheet indices (starting from 1).
+//         switch (c.getType())
+//         {
+//         case CellType::WHOLE_NUMBER:
+//             n = c.getWholeNumber();
+//             break;
+//         case CellType::DECIMAL_NUMBER:
+//             n = c.getDecimalNumber();
+//             break;
+//         case CellType::FORMULA:
+//             n = c.getFormulaResult();
+//             break;
+//         case CellType::TEXT:
+//         case CellType::NONE:
+//             n = 0;
+//         }
+//         return true;
+//     }
+//     return false;
+// }

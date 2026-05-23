@@ -30,6 +30,11 @@ private:
 
     void parseCell(std::string &token, std::vector<Cell> &row, size_t rowNumber);
     static void processBackslashInText(std::string &token);
+
+    static void extractFormulaTokens(std::string &formula, std::vector<std::string> &tokensOut, std::vector<char> &operatorsOut);
+    static void clearUnnecessaryWhitespaces(std::string &s);
+    static bool isOperator(char c);
+    bool isAddressValid(Address a) const;
 };
 
 #endif

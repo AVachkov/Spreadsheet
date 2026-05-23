@@ -24,6 +24,11 @@ Address &Address::operator=(const Address &rhs)
     return *this;
 }
 
+bool Address::operator==(const Address &rhs)
+{
+    return row == rhs.row && col == rhs.col;
+}
+
 bool Address::isAddress(const std::string &s, Address &out)
 {
     out.row = 0;
@@ -98,7 +103,7 @@ NumberType Number::getType() const
 double Number::getValue() const
 {
     if (type == NumberType::WHOLE_NUMBER)
-        return static_cast<double>(wholeNumber);
+        return (double)wholeNumber;
     else if (type == NumberType::DECIMAL_NUMBER)
         return decimalNumber;
 
@@ -133,6 +138,7 @@ Number Number::operator-(Number rhs)
 
 Number Number::operator*(Number rhs)
 {
+    // figure out the actual type after computation
     return getValue() * rhs.getValue();
 }
 

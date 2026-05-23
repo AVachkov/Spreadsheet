@@ -2,6 +2,7 @@
 #include <string>
 #include <fstream>
 #include <iostream>
+#include <vector>
 #include "utilities.h"
 
 Spreadsheet::Spreadsheet() : is_open(false)
@@ -17,7 +18,7 @@ void Spreadsheet::open(const std::string &_fileName)
     }
 
     if (_fileName.empty())
-        throw "File name cannot be empty.\n";
+        throw "File name cannot be empty.\n"; // cout<<...
 
     fileName = _fileName;
     std::ifstream file(fileName);
@@ -111,7 +112,7 @@ void Spreadsheet::deserialize(std::istream &in)
 
     std::vector<Cell> row;
     std::string token;
-    size_t rowNumber = 1;
+    size_t rowNumber = 1; // change to 0
 
     char ch;
     while (in.get(ch))
@@ -142,24 +143,82 @@ void Spreadsheet::deserialize(std::istream &in)
         cells.push_back(row);
     }
 
-    //
-
     if (cells.empty())
         return;
 
-    int longestRow = cells[0].size();
+    int longestRow = cells[0].size(); // unnecessary?
     for (const std::vector<Cell> &r : cells)
     {
         if (r.size() > longestRow)
             longestRow = r.size();
     }
 
-    for (size_t i = 0; i < cells.size(); ++i)
+    for (size_t i = 0; i < cells.size(); ++i) // unnecessary?
     {
         while (cells[i].size() < longestRow)
         {
             Cell empty(Address(i + 1, cells[i].size() + 1));
             cells[i].push_back(empty);
+        }
+    }
+
+    // check for unsolved addresses
+    bool tableChanged = true;
+    while (tableChanged)
+    {
+        tableChanged = false;
+        for (int i = 0; i < cells.size(); ++i)
+        {
+            for (int j = 0; j < cells[i].size(); ++j)
+            {
+                if (cells[i][j].getType() != CellType::FORMULA || cells[i][j].getFormula().isValid())
+                    continue;
+
+                Formula currentFormula = cells[i][j].getFormula();
+                if (currentFormula.containsAddress())
+                {
+                    std::vector<std::string> tokens;
+                    std::vector<char> operators;
+
+                    std::string currentFormulaAsText = currentFormula.getFormulaText();
+                    extractFormulaTokens(currentFormulaAsText, tokens, operators);
+                    // currentFormula = currentFormulaAsText;
+
+                    Formula formula(cells[i][j].getFormula());
+                    formula.solveFormula(tokens, operators, [this](Address a) -> Number
+                                         {
+                        if (this->isAddressValid(a))
+                        {
+                            const Cell &cell = this->cells[a.row - 1][a.col - 1];
+                            if (cell.getType() == CellType::FORMULA)
+                            {
+                                if (cell.getFormula().isValid())
+                                {
+                                    return cell.getFormula().getResult();
+                                }
+                                else
+                                {
+                                    return Number();
+                                }
+                            }
+                            else if (cell.getType() == CellType::WHOLE_NUMBER)
+                            {
+                                return Number(cell.getWholeNumber());
+                            }
+                            else if (cell.getType() == CellType::DECIMAL_NUMBER)
+                            {
+                                return Number(cell.getDecimalNumber());
+                            }
+                        }
+                        return Number(0); });
+
+                    if (formula.isValid())
+                    {
+                        cells[i][j] = formula;
+                        tableChanged = true;
+                    }
+                }
+            }
         }
     }
 }
@@ -175,10 +234,15 @@ void Spreadsheet::parseCell(std::string &token, std::vector<Cell> &row, size_t r
     }
     else if (token.size() > 0 && token[0] == '=')
     {
-        Formula formula(token, &cells);
-        if (formula.isValid())
+        std::vector<std::string> tokens;
+        std::vector<char> operators;
+        extractFormulaTokens(token, tokens, operators);
+        Formula formula(token);
+        formula.solveFormula(tokens, operators);
+
+        if (formula.isValid() || formula.containsAddress())
         {
-            Cell cell(Address(rowNumber, row.size() + 1), formula.getResult());
+            Cell cell(Address(rowNumber, row.size() + 1), formula);
             row.push_back(cell);
         }
         else
@@ -228,4 +292,93 @@ void Spreadsheet::processBackslashInText(std::string &token)
             backslash = true;
         }
     }
+}
+
+void Spreadsheet::extractFormulaTokens(std::string &formula, std::vector<std::string> &tokensOut, std::vector<char> &operatorsOut)
+{
+    clearUnnecessaryWhitespaces(formula);
+
+    tokensOut.clear();
+    operatorsOut.clear();
+
+    size_t i = 1;
+    if (formula.size() >= 2 && isOperator(formula[1]))
+    // handle leading operator for the first number (e.g. -5, +12)
+    {
+        std::string data;
+        while (i < formula.size() && !isOperator(formula[i]))
+        {
+            data += formula[i];
+            ++i;
+        }
+
+        tokensOut.push_back(data);
+    }
+
+    while (i < formula.size())
+    {
+        if (isOperator(formula[i]))
+        {
+            operatorsOut.push_back(formula[i]);
+            ++i;
+        }
+        else
+        {
+            std::string data;
+            while (i < formula.size() && !isOperator(formula[i]))
+            {
+                data += formula[i];
+                ++i;
+            }
+
+            tokensOut.push_back(data);
+            data.clear();
+        }
+    }
+}
+
+void Spreadsheet::clearUnnecessaryWhitespaces(std::string &s)
+{
+    size_t i = 0;
+    while (i < s.size())
+    {
+        if (isdigit(s[i]))
+        // skip whitespaces between digits
+        {
+            bool isThereOperatorInBetween = false;
+            int charsBetweenDigits = 0;
+            size_t j = i + 1;
+            while (j < s.size() && !isdigit(s[j]))
+            {
+                if (isOperator(s[j]))
+                {
+                    isThereOperatorInBetween = true;
+                }
+
+                ++j;
+                ++charsBetweenDigits;
+            }
+
+            if (charsBetweenDigits > 0 && !isThereOperatorInBetween)
+            {
+                i = j;
+            }
+        }
+
+        if (isWhitespace(s[i]))
+            s.erase(i, 1);
+        else
+            ++i;
+    }
+}
+
+bool Spreadsheet::isOperator(char c)
+{
+    return c == '+' || c == '-' || c == '*' || c == '/' || c == '^';
+}
+
+bool Spreadsheet::isAddressValid(Address a) const
+{
+    return a.row > 0 && (a.row - 1) < cells.size() &&
+           a.col > 0 && (a.col - 1) < cells[a.row - 1].size();
 }

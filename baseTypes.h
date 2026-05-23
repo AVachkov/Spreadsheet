@@ -19,10 +19,12 @@ struct Address // stored as actual spreadsheet indices (starting from 1).
     size_t col;
 
     Address();
-    Address(size_t, size_t);
-    Address &operator=(const Address &);
+    Address(size_t _row, size_t _col);
+    Address &operator=(const Address &rhs);
+    bool operator==(const Address &rhs); // TODO
 
-    static bool isAddress(const std::string &, Address &);
+    static bool isAddress(const std::string &s, Address &out);
+    // static Address parseAddress(const std::string &s); // use this inside isAddress
 };
 
 enum NumberType

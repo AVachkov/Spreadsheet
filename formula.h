@@ -5,33 +5,33 @@
 #include <vector>
 #include <string>
 #include <functional>
-// #include <list>
-
-class Cell; // because of circular file problem
 
 class Formula
 {
 public:
-    Formula();
-    Formula(const std::string &_formula, std::vector<std::vector<Cell>> *_cells);
+    Formula(const Formula &original) = default;
+    Formula &operator=(const Formula &rhs) = default;
+    ~Formula() = default;
+    Formula(const std::string &formulaAsText);
+
+    void solveFormula(
+        const std::vector<std::string> &tokens_from_expression,
+        std::vector<char> &operators_from_expression,
+        std::function<Number(Address)> getCellValue = nullptr);
 
     Number getResult() const;
+    std::string getFormulaText();
     bool isValid() const;
+    bool containsAddress() const;
+
+    Formula &operator=(const std::string &_formulaAsText);
 
 private:
-    std::string formula;
-    std::vector<std::vector<Cell>> *cells;
-
+    std::string formula_as_text;
     bool is_valid;
+    bool contains_address;
     Number result;
 
-    bool solveFormula(const std::string &_formula, std::vector<std::vector<Cell>> *_cells, Number &outRes);
-
-    // solveFormula helpers:
-    static void clearUnnecessaryWhitespaces(std::string &s);
-    static bool isOperator(char c);
-    bool parseAddress(Address address, Number &n) const;
-    bool isAddressValid(Address a) const;
     static bool processOperations(std::vector<Number> &numbers_from_expression, std::vector<char> &operators_from_expression);
 
     using binaryFunction = std::function<Number(Number, Number)>;
@@ -43,7 +43,10 @@ private:
     static bool executeMultipleOperators(const std::vector<char> &operators_to_execute,
                                          const std::vector<binaryFunction> &functions_to_execute,
                                          std::vector<Number> &numbers_from_expression,
-                                         std::vector<char> &operators_from_expression); // try doing it with list
+                                         std::vector<char> &operators_from_expression);
+
+    static bool isOperator(char c);
+    void markSyntaxError();
 };
 
 std::ostream &operator<<(std::ostream &out, const Formula &formula);
