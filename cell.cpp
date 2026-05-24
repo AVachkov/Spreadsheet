@@ -2,31 +2,22 @@
 #include "formula.h"
 #include <iostream>
 
-Cell::Cell(Address _address) : wholeNumber(0), decimalNumber(0.0), text(""), formula(""), definedType(CellType::NONE), address(_address)
-{
-}
+Cell::Cell(Address _address)
+    : wholeNumber(0), decimalNumber(0.0), text(""), formula(""), definedType(CellType::NONE), address(_address) {}
 
-Cell::Cell(Address _address, int _wholeNumber) : wholeNumber(_wholeNumber), decimalNumber(0.0),
-                                                 text(""), formula(""), definedType(CellType::WHOLE_NUMBER),
-                                                 address(_address)
-{
-}
+Cell::Cell(Address _address, int _wholeNumber)
+    : wholeNumber(_wholeNumber), decimalNumber(0.0), text(""), formula(""), definedType(CellType::WHOLE_NUMBER),
+      address(_address) {}
 
-Cell::Cell(Address _address, double _decimalNumber) : wholeNumber(0), decimalNumber(_decimalNumber),
-                                                      text(""), formula(""), definedType(CellType::DECIMAL_NUMBER), address(_address)
-{
-}
+Cell::Cell(Address _address, double _decimalNumber)
+    : wholeNumber(0), decimalNumber(_decimalNumber), text(""), formula(""), definedType(CellType::DECIMAL_NUMBER),
+      address(_address) {}
 
-Cell::Cell(Address _address, const std::string &_text) : wholeNumber(0), decimalNumber(0.0),
-                                                         text(_text), formula(""), definedType(CellType::TEXT),
-                                                         address(_address)
-{
-}
+Cell::Cell(Address _address, const std::string &_text)
+    : wholeNumber(0), decimalNumber(0.0), text(_text), formula(""), definedType(CellType::TEXT), address(_address) {}
 
-Cell::Cell(Address _address, const Formula &_formula) : wholeNumber(0), decimalNumber(0.0),
-                                                        text(), formula(_formula), definedType(CellType::FORMULA),
-                                                        address(_address)
-{
+Cell::Cell(Address _address, const Formula &_formula)
+    : wholeNumber(0), decimalNumber(0.0), text(), formula(_formula), definedType(CellType::FORMULA), address(_address) {
 }
 
 // Cell::Cell(Address _address, const Number &n) : wholeNumber(0), decimalNumber(0.0),
@@ -35,35 +26,20 @@ Cell::Cell(Address _address, const Formula &_formula) : wholeNumber(0), decimalN
 // {
 // }
 
-int Cell::getWholeNumber() const
-{
-    return wholeNumber;
-}
+int Cell::getWholeNumber() const { return wholeNumber; }
 
-double Cell::getDecimalNumber() const
-{
-    return decimalNumber;
-}
+double Cell::getDecimalNumber() const { return decimalNumber; }
 
-std::string Cell::getText() const
-{
-    return text;
-}
+std::string Cell::getText() const { return text; }
 
-Formula Cell::getFormula() const
-{
-    return formula;
-}
+const Formula &Cell::getFormula() const { return formula; }
 
 // Number Cell::getFormulaResult() const
 // {
 //     return formulaResult;
 // }
 
-CellType Cell::getType() const
-{
-    return definedType;
-}
+CellType Cell::getType() const { return definedType; }
 
 // bool Cell::containsAddress() const
 // {
@@ -81,8 +57,7 @@ CellType Cell::getType() const
 //     definedType = CellType::FORMULA;
 // }
 
-void Cell::markError()
-{
+void Cell::markError() {
     wholeNumber = 0;
     decimalNumber = 0.0;
     text = "";
@@ -91,10 +66,8 @@ void Cell::markError()
     address = Address();
 }
 
-Number Cell::getNumericValue() const
-{
-    switch (definedType)
-    {
+Number Cell::getNumericValue() const {
+    switch (definedType) {
     case CellType::WHOLE_NUMBER:
         return wholeNumber;
     case CellType::DECIMAL_NUMBER:
@@ -110,16 +83,17 @@ Number Cell::getNumericValue() const
     return Number(0);
 }
 
-Cell &Cell::operator=(const Formula &rhs)
-{
+Cell &Cell::operator=(const Formula &rhs) {
+    text.clear();
+    wholeNumber = 0;
+    decimalNumber = 0.0;
+    definedType = CellType::FORMULA;
     formula = rhs;
     return *this;
 }
 
-std::ostream &operator<<(std::ostream &out, const Cell &cell)
-{
-    switch (cell.getType())
-    {
+std::ostream &operator<<(std::ostream &out, const Cell &cell) {
+    switch (cell.getType()) {
     case CellType::WHOLE_NUMBER:
         out << cell.getWholeNumber();
         break;

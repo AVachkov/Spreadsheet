@@ -1,14 +1,13 @@
 #ifndef CELL_H
 #define CELL_H
 
-#include "formula.h"
 #include "baseTypes.h"
-#include <string>
+#include "formula.h"
 #include <iostream>
+#include <string>
 
-class Cell
-{
-public:
+class Cell {
+  public:
     Cell(const Cell &original) = default;
     Cell &operator=(const Cell &rhs) = default;
     ~Cell() = default;
@@ -22,7 +21,7 @@ public:
     int getWholeNumber() const;
     double getDecimalNumber() const;
     std::string getText() const;
-    Formula getFormula() const;
+    const Formula &getFormula() const;
     CellType getType() const;
 
     void markError();
@@ -30,7 +29,7 @@ public:
 
     Cell &operator=(const Formula &rhs);
 
-private:
+  private:
     int wholeNumber;
     double decimalNumber;
     std::string text;
