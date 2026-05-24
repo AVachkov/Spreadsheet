@@ -8,37 +8,90 @@
 
 class Cell {
   public:
+    Cell(Address _address);
     Cell(const Cell &original) = default;
     Cell &operator=(const Cell &rhs) = default;
-    ~Cell() = default;
+    virtual ~Cell();
 
-    Cell(Address _address);
-    Cell(Address _address, int _wholeNumber);
-    Cell(Address _address, double _decimalNumber);
-    Cell(Address _address, const std::string &_text);
-    Cell(Address _address, const Formula &_formula);
+    virtual CellType getType() const = 0;
+    virtual Number getNumericValue() const = 0;
+    virtual void print(std::ostream &out) const = 0;
 
-    int getWholeNumber() const;
-    double getDecimalNumber() const;
-    std::string getText() const;
-    const Formula &getFormula() const;
-    CellType getType() const;
+    Address getAddress() const;
 
-    void markError();
-    Number getNumericValue() const;
-
-    Cell &operator=(const Formula &rhs);
-
-  private:
-    int wholeNumber;
-    double decimalNumber;
-    std::string text;
-    Formula formula;
-
-    CellType definedType;
+  protected:
     Address address;
 };
 
-std::ostream &operator<<(std::ostream &out, const Cell &cell);
+class WholeNumberCell : public Cell {
+  public:
+    WholeNumberCell(Address _address, int _wholeNumber);
+    CellType getType() const override;
+    Number getNumericValue() const override;
+    void print(std::ostream &out) const override;
+
+  private:
+    int whole_number;
+};
+
+class DecimalNumberCell : public Cell {
+  public:
+    DecimalNumberCell(Address _address, double _decimalNumber);
+    CellType getType() const override;
+    Number getNumericValue() const override;
+    void print(std::ostream &out) const override;
+
+  private:
+    double decimal_number;
+};
+
+class TextCell : public Cell {
+  public:
+    TextCell(Address _address, const std::string &_text);
+    CellType getType() const override;
+    Number getNumericValue() const override;
+    void print(std::ostream &out) const override;
+
+    std::string getText() const;
+
+  private:
+    std::string text;
+};
+
+class FormulaCell : public Cell {
+  public:
+    FormulaCell(Address _address, const Formula &_formula);
+    CellType getType() const override;
+    Number getNumericValue() const override;
+    void print(std::ostream &out) const override;
+
+    Formula getFormula() const;
+
+  private:
+    Formula formula;
+};
+
+class EmptyCell : public Cell {
+  public:
+    EmptyCell(Address _address, const std::string &_status = "");
+    CellType getType() const override;
+    Number getNumericValue() const override;
+    void print(std::ostream &out) const override;
+
+    std::string getStatus() const;
+
+  private:
+    std::string status;
+};
+
+class ErrorCell : public Cell {
+  public:
+    ErrorCell(Address _address);
+    CellType getType() const override;
+    Number getNumericValue() const override;
+    void print(std::ostream &out) const override;
+};
+
+std::ostream &operator<<(std::ostream &out, const Cell *cell);
 
 #endif

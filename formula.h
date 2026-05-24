@@ -29,6 +29,8 @@ class Formula {
     bool is_valid;
     Number result;
 
+    void markSyntaxError();
+
     static bool processOperations(std::vector<Number> &numbers_from_expression,
                                   std::vector<char> &operators_from_expression);
 
@@ -41,8 +43,6 @@ class Formula {
                                          const std::vector<binaryFunction> &functions_to_execute,
                                          std::vector<Number> &numbers_from_expression,
                                          std::vector<char> &operators_from_expression);
-
-    void markSyntaxError();
 };
 
 std::ostream &operator<<(std::ostream &out, const Formula &formula);

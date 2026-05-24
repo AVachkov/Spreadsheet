@@ -1,113 +1,67 @@
 #include "cell.h"
-#include "formula.h"
-#include <iostream>
 
-Cell::Cell(Address _address)
-    : wholeNumber(0), decimalNumber(0.0), text(""), formula(""), definedType(CellType::NONE), address(_address) {}
+Cell::Cell(Address _address) : address(_address) {}
 
-Cell::Cell(Address _address, int _wholeNumber)
-    : wholeNumber(_wholeNumber), decimalNumber(0.0), text(""), formula(""), definedType(CellType::WHOLE_NUMBER),
-      address(_address) {}
+Cell::~Cell() {}
 
-Cell::Cell(Address _address, double _decimalNumber)
-    : wholeNumber(0), decimalNumber(_decimalNumber), text(""), formula(""), definedType(CellType::DECIMAL_NUMBER),
-      address(_address) {}
+Address Cell::getAddress() const { return address; }
 
-Cell::Cell(Address _address, const std::string &_text)
-    : wholeNumber(0), decimalNumber(0.0), text(_text), formula(""), definedType(CellType::TEXT), address(_address) {}
+WholeNumberCell::WholeNumberCell(Address _address, int _wholeNumber) : Cell(_address), whole_number(_wholeNumber) {}
 
-Cell::Cell(Address _address, const Formula &_formula)
-    : wholeNumber(0), decimalNumber(0.0), text(), formula(_formula), definedType(CellType::FORMULA), address(_address) {
-}
+CellType WholeNumberCell::getType() const { return CellType::WHOLE_NUMBER; }
 
-// Cell::Cell(Address _address, const Number &n) : wholeNumber(0), decimalNumber(0.0),
-//                                                 text(""), formula(n), definedType(CellType::FORMULA),
-//                                                 address(_address)
-// {
-// }
+Number WholeNumberCell::getNumericValue() const { return Number(whole_number); }
 
-int Cell::getWholeNumber() const { return wholeNumber; }
+void WholeNumberCell::print(std::ostream &out) const { out << whole_number; }
 
-double Cell::getDecimalNumber() const { return decimalNumber; }
+DecimalNumberCell::DecimalNumberCell(Address _address, double _decimalNumber)
+    : Cell(_address), decimal_number(_decimalNumber) {}
 
-std::string Cell::getText() const { return text; }
+CellType DecimalNumberCell::getType() const { return CellType::DECIMAL_NUMBER; }
 
-const Formula &Cell::getFormula() const { return formula; }
+Number DecimalNumberCell::getNumericValue() const { return Number(decimal_number); }
 
-// Number Cell::getFormulaResult() const
-// {
-//     return formulaResult;
-// }
+void DecimalNumberCell::print(std::ostream &out) const { out << decimal_number; }
 
-CellType Cell::getType() const { return definedType; }
+TextCell::TextCell(Address _address, const std::string &_text) : Cell(_address), text(_text) {}
 
-// bool Cell::containsAddress() const
-// {
-//     return contains_address;
-// }
+CellType TextCell::getType() const { return CellType::TEXT; }
 
-// void Cell::setContainsAddress(bool flag)
-// {
-//     contains_address = flag;
-// }
+Number TextCell::getNumericValue() const { return Number(0); }
 
-// void Cell::setFormula(std::string f)
-// {
-//     text = f;
-//     definedType = CellType::FORMULA;
-// }
+void TextCell::print(std::ostream &out) const { out << text; }
 
-void Cell::markError() {
-    wholeNumber = 0;
-    decimalNumber = 0.0;
-    text = "";
-    formula = Formula("");
-    definedType = CellType::NONE;
-    address = Address();
-}
+std::string TextCell::getText() const { return text; }
 
-Number Cell::getNumericValue() const {
-    switch (definedType) {
-    case CellType::WHOLE_NUMBER:
-        return wholeNumber;
-    case CellType::DECIMAL_NUMBER:
-        return decimalNumber;
-    case CellType::TEXT:
-    case CellType::FORMULA:
-        if (formula.isValid())
-            return formula.getResult();
-        return Number(0);
-    default:
-        return Number(0);
-    }
-    return Number(0);
-}
+FormulaCell::FormulaCell(Address _address, const Formula &_formula) : Cell(_address), formula(_formula) {}
 
-Cell &Cell::operator=(const Formula &rhs) {
-    text.clear();
-    wholeNumber = 0;
-    decimalNumber = 0.0;
-    definedType = CellType::FORMULA;
-    formula = rhs;
-    return *this;
-}
+CellType FormulaCell::getType() const { return CellType::FORMULA; }
 
-std::ostream &operator<<(std::ostream &out, const Cell &cell) {
-    switch (cell.getType()) {
-    case CellType::WHOLE_NUMBER:
-        out << cell.getWholeNumber();
-        break;
-    case CellType::DECIMAL_NUMBER:
-        out << cell.getDecimalNumber();
-        break;
-    case CellType::TEXT:
-        out << cell.getText();
-        break;
-    case CellType::FORMULA:
-        out << cell.getFormula().getResult();
-        break;
-    default:
-        break;
-    }
+Number FormulaCell::getNumericValue() const { return formula.getResult(); }
+
+void FormulaCell::print(std::ostream &out) const { out << formula.getResult(); }
+
+Formula FormulaCell::getFormula() const { return formula; }
+
+EmptyCell::EmptyCell(Address _address, const std::string &_status) : Cell(_address), status(_status) {}
+
+CellType EmptyCell::getType() const { return CellType::NONE; }
+
+Number EmptyCell::getNumericValue() const { return Number(0); }
+
+void EmptyCell::print(std::ostream &out) const { out << ""; }
+
+std::string EmptyCell::getStatus() const { return status; }
+
+std::ostream &operator<<(std::ostream &out, const Cell *cell) {
+    cell->print(out);
     return out;
 }
+
+ErrorCell::ErrorCell(Address _address) : Cell(_address) {}
+
+CellType ErrorCell::getType() const { return CellType::ERROR; }
+
+Number ErrorCell::getNumericValue() const { return Number(0); }
+
+void ErrorCell::print(std::ostream &out) const { out << "ERROR"; }

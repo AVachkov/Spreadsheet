@@ -1,17 +1,10 @@
 #ifndef BASE_TYPES_H
 #define BASE_TYPES_H
 
-#include <string>
 #include <iostream>
+#include <string>
 
-enum class CellType
-{
-    NONE,
-    WHOLE_NUMBER,
-    DECIMAL_NUMBER,
-    TEXT,
-    FORMULA
-};
+enum class CellType { NONE, ERROR, WHOLE_NUMBER, DECIMAL_NUMBER, TEXT, FORMULA };
 
 struct Address // stored as actual spreadsheet indices (starting from 1).
 {
@@ -27,16 +20,10 @@ struct Address // stored as actual spreadsheet indices (starting from 1).
     // static Address parseAddress(const std::string &s); // use this inside isAddress
 };
 
-enum NumberType
-{
-    NONE,
-    WHOLE_NUMBER,
-    DECIMAL_NUMBER
-};
+enum NumberType { NONE, WHOLE_NUMBER, DECIMAL_NUMBER };
 
-class Number
-{
-public:
+class Number {
+  public:
     int wholeNumber;
     double decimalNumber;
 
@@ -58,7 +45,7 @@ public:
 
     static bool parseNumber(const std::string &str, Number &number); // remove static
 
-private:
+  private:
     NumberType type;
 };
 

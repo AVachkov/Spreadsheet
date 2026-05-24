@@ -18,25 +18,23 @@ class Spreadsheet {
     void exit() const;
 
   private:
-    std::vector<std::vector<Cell>> cells;
-    std::string fileName;
+    std::vector<std::vector<Cell *>> cells;
+    std::string file_name;
     bool is_open;
-
-    std::vector<Address> calculationPath;
 
     void serialize(std::ostream &out) const;
     void deserialize(std::istream &in);
 
+    void parseCell(std::string &token, std::vector<Cell *> &row, size_t rowNumber);
+    void solveFormulasWithAdresses();
     Number getOrCalculateCellValue(Address a);
-    void parseCell(std::string &token, std::vector<Cell> &row, size_t rowNumber);
 
-    static void processBackslashInText(std::string &token);
     static void extractFormulaTokens(std::string &formula, std::vector<std::string> &tokensOut,
                                      std::vector<char> &operatorsOut);
-    static void clearUnnecessaryWhitespaces(std::string &s);
-    bool isAddressValid(Address a) const;
     void alignAllCells();
-    void solveFormulasWithAdresses();
+    bool isAddressValid(Address a) const;
+    static void clearUnnecessaryWhitespaces(std::string &s);
+    static void processBackslashInText(std::string &token);
 };
 
 #endif
