@@ -144,15 +144,37 @@ void Spreadsheet::print(std::ostream &out) const
     {
         for (size_t c = 0; c < cells[r].size(); ++c)
         {
-            out << "| " << std::flush;
+            out << "| ";
 
             int blankSpaces = longestTextInEachCol[c] - cells[r][c]->getContentLength();
 
-            out << std::string(blankSpaces, ' ') << std::flush;
+            out << std::string(blankSpaces, ' ');
             cells[r][c]->print(out);
-            out << " " << std::flush;
+            out << " ";
         }
-        out << " |\n" << std::flush;
+        out << " |\n";
+    }
+}
+
+void Spreadsheet::edit(Address address, const Cell *newCell)
+{
+    if (isAddressValid(address))
+    {
+        delete cells[address.row - 1][address.col - 1];
+        cells[address.row - 1][address.col - 1] = newCell->clone();
+
+        try
+        {
+            solveFormulasWithAdresses();
+        }
+        catch (const std::runtime_error &e)
+        {
+            std::cerr << "Error: " << e.what() << '\n';
+        }
+    }
+    else
+    {
+        std::cout << "Address out of spreadsheet bonds.\n";
     }
 }
 
@@ -446,9 +468,17 @@ Number Spreadsheet::getOrCalculateCellValue(Address a)
         }
 
         delete cells[a.row - 1][a.col - 1];
-        cells[a.row - 1][a.col - 1] = new FormulaCell(a, formula);
 
-        return formula.getResult();
+        if (formula.syntaxError())
+        {
+            cells[a.row - 1][a.col - 1] = new ErrorCell(a);
+            return Number(0);
+        }
+        else
+        {
+            cells[a.row - 1][a.col - 1] = new FormulaCell(a, formula);
+            return formula.getResult();
+        }
     }
 
     return Number(0);

@@ -21,6 +21,7 @@ class Spreadsheet
     void help() const;
     void exit() const;
     void print(std::ostream &out) const;
+    void edit(Address address, const Cell *newCell);
 
   private:
     std::vector<std::vector<Cell *>> cells;

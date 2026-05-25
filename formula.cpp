@@ -55,6 +55,10 @@ void Formula::solveFormula(const std::vector<std::string> &tokens_from_expressio
         result = numbers[0];
         is_valid = true;
     }
+    else
+    {
+        markSyntaxError();
+    }
 }
 
 bool Formula::processOperations(std::vector<Number> &numbers_from_expression, std::vector<char> &operators_from_expression)
@@ -107,7 +111,7 @@ bool Formula::executeMultipleOperators(const std::vector<char> &operators_to_exe
                                        const std::vector<binaryFunction> &functions_to_execute,
                                        std::vector<Number> &numbers_from_expression, std::vector<char> &operators_from_expression)
 {
-    for (char op : operators_to_execute) // unnecessary?
+    for (char op : operators_to_execute)
     {
         if (!isOperator(op))
             return false;
@@ -125,7 +129,7 @@ bool Formula::executeMultipleOperators(const std::vector<char> &operators_to_exe
         {
             if (currentOpFromExpr == operators_to_execute[j])
             {
-                index_of_op_and_func = j; // break
+                index_of_op_and_func = j;
             }
         }
 
