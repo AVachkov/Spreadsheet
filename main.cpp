@@ -1,10 +1,13 @@
 #include "spreadsheet.h"
 #include <iostream>
 
-int main() {
+int main()
+{
     Spreadsheet s;
-    s.open("table.txt");
-    s.saveas("des.txt");
+    s.open("tests/table.txt");
+    s.saveas("tests/output.txt");
+
+    s.print(std::cout);
 
     return 0;
 }

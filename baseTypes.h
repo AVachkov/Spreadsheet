@@ -4,7 +4,15 @@
 #include <iostream>
 #include <string>
 
-enum class CellType { NONE, ERROR, WHOLE_NUMBER, DECIMAL_NUMBER, TEXT, FORMULA };
+enum class CellType
+{
+    NONE,
+    ERROR,
+    WHOLE_NUMBER,
+    DECIMAL_NUMBER,
+    TEXT,
+    FORMULA
+};
 
 struct Address // stored as actual spreadsheet indices (starting from 1).
 {
@@ -20,9 +28,15 @@ struct Address // stored as actual spreadsheet indices (starting from 1).
     // static Address parseAddress(const std::string &s); // use this inside isAddress
 };
 
-enum NumberType { NONE, WHOLE_NUMBER, DECIMAL_NUMBER };
+enum class NumberType
+{
+    NONE,
+    WHOLE_NUMBER,
+    DECIMAL_NUMBER
+};
 
-class Number {
+class Number
+{
   public:
     int wholeNumber;
     double decimalNumber;

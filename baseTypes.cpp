@@ -1,17 +1,13 @@
 #include "baseTypes.h"
-#include <string> // for std::stoi, std::stod
-#include <cmath>
-#include <iostream>
-#include <exception>
 #include <cctype>
+#include <cmath>
+#include <exception>
+#include <iostream>
+#include <string> // for std::stoi, std::stod
 
-Address::Address() : row(1), col(1)
-{
-}
+Address::Address() : row(1), col(1) {}
 
-Address::Address(size_t _row, size_t _col) : row(_row), col(_col)
-{
-}
+Address::Address(size_t _row, size_t _col) : row(_row), col(_col) {}
 
 Address &Address::operator=(const Address &rhs)
 {
@@ -24,10 +20,7 @@ Address &Address::operator=(const Address &rhs)
     return *this;
 }
 
-bool Address::operator==(const Address &rhs)
-{
-    return row == rhs.row && col == rhs.col;
-}
+bool Address::operator==(const Address &rhs) { return row == rhs.row && col == rhs.col; }
 
 bool Address::isAddress(const std::string &s, Address &out)
 {
@@ -72,17 +65,11 @@ bool Address::isAddress(const std::string &s, Address &out)
     return true;
 }
 
-Number::Number() : wholeNumber(0), decimalNumber(0.0), type(NumberType::NONE)
-{
-}
+Number::Number() : wholeNumber(0), decimalNumber(0.0), type(NumberType::NONE) {}
 
-Number::Number(int _wholeNumber) : wholeNumber(_wholeNumber), decimalNumber(0.0), type(NumberType::WHOLE_NUMBER)
-{
-}
+Number::Number(int _wholeNumber) : wholeNumber(_wholeNumber), decimalNumber(0.0), type(NumberType::WHOLE_NUMBER) {}
 
-Number::Number(double _decimalNumber) : wholeNumber(0), decimalNumber(_decimalNumber), type(NumberType::DECIMAL_NUMBER)
-{
-}
+Number::Number(double _decimalNumber) : wholeNumber(0), decimalNumber(_decimalNumber), type(NumberType::DECIMAL_NUMBER) {}
 
 Number::Number(const std::string &s) : wholeNumber(0), decimalNumber(0.0), type(NumberType::NONE)
 {
@@ -95,10 +82,7 @@ Number::Number(const std::string &s) : wholeNumber(0), decimalNumber(0.0), type(
     }
 }
 
-NumberType Number::getType() const
-{
-    return type;
-}
+NumberType Number::getType() const { return type; }
 
 double Number::getValue() const
 {
@@ -126,15 +110,9 @@ Number &Number::operator=(double d)
     return *this;
 }
 
-Number Number::operator+(Number rhs)
-{
-    return getValue() + rhs.getValue();
-}
+Number Number::operator+(Number rhs) { return getValue() + rhs.getValue(); }
 
-Number Number::operator-(Number rhs)
-{
-    return getValue() - rhs.getValue();
-}
+Number Number::operator-(Number rhs) { return getValue() - rhs.getValue(); }
 
 Number Number::operator*(Number rhs)
 {
@@ -150,10 +128,7 @@ Number Number::operator/(Number rhs)
     return getValue() / rhs.getValue();
 }
 
-Number Number::operator^(Number rhs)
-{
-    return std::pow(getValue(), rhs.getValue());
-}
+Number Number::operator^(Number rhs) { return std::pow(getValue(), rhs.getValue()); }
 
 bool Number::parseNumber(const std::string &str, Number &number)
 {
@@ -164,7 +139,12 @@ bool Number::parseNumber(const std::string &str, Number &number)
 
     size_t start = 0;
     if (str[0] == '-' || str[0] == '+')
+    {
+        if (str.size() == 1)
+            return false;
+
         start = 1;
+    }
 
     int dots = 0;
     for (size_t i = start; i < str.size(); ++i)
@@ -179,23 +159,34 @@ bool Number::parseNumber(const std::string &str, Number &number)
             return false;
     }
 
-    if (str != ".")
-    {
-        if (dots == 0)
-        {
-            number.type = NumberType::WHOLE_NUMBER;
-            number.wholeNumber = std::stoi(str);
-        }
-        else
-        {
-            number.type = NumberType::DECIMAL_NUMBER;
-            number.decimalNumber = std::stod(str);
-        }
+    if (str == ".")
+        return false;
 
-        return true;
+    bool containsDigit = false;
+    for (char c : str)
+    {
+        if (isdigit(c))
+        {
+            containsDigit = true;
+            break;
+        }
     }
 
-    return false;
+    if (!containsDigit)
+        return false;
+
+    if (dots == 0)
+    {
+        number.type = NumberType::WHOLE_NUMBER;
+        number.wholeNumber = std::stoi(str);
+    }
+    else
+    {
+        number.type = NumberType::DECIMAL_NUMBER;
+        number.decimalNumber = std::stod(str);
+    }
+
+    return true;
 }
 
 std::ostream &operator<<(std::ostream &out, const Number &n)

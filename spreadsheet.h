@@ -6,9 +6,13 @@
 #include <string>
 #include <vector>
 
-class Spreadsheet {
+class Spreadsheet
+{
   public:
     Spreadsheet();
+    Spreadsheet(const Spreadsheet &original);
+    Spreadsheet &operator=(const Spreadsheet &rhs);
+    ~Spreadsheet();
 
     void open(const std::string &_fileName);
     void close();
@@ -16,11 +20,15 @@ class Spreadsheet {
     void saveas(const std::string &_fileName) const;
     void help() const;
     void exit() const;
+    void print(std::ostream &out) const;
 
   private:
     std::vector<std::vector<Cell *>> cells;
     std::string file_name;
     bool is_open;
+
+    void free();
+    void copyfrom(const Spreadsheet &original);
 
     void serialize(std::ostream &out) const;
     void deserialize(std::istream &in);
@@ -29,12 +37,14 @@ class Spreadsheet {
     void solveFormulasWithAdresses();
     Number getOrCalculateCellValue(Address a);
 
-    static void extractFormulaTokens(std::string &formula, std::vector<std::string> &tokensOut,
-                                     std::vector<char> &operatorsOut);
+    static void tokenize(std::string &formula, std::vector<std::string> &tokensOut, std::vector<char> &operatorsOut);
     void alignAllCells();
     bool isAddressValid(Address a) const;
     static void clearUnnecessaryWhitespaces(std::string &s);
     static void processBackslashInText(std::string &token);
+    static std::string removeQuotesFromText(const std::string &text);
+    static bool isText(const std::string &s);
+    static void handleUnknownCell(const std::string &s, size_t rowNumber, size_t colNumber);
 };
 
 #endif

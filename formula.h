@@ -21,6 +21,7 @@ class Formula {
     Number getResult() const;
     std::string getFormulaText() const;
     bool isValid() const;
+    bool syntaxError() const;
 
     Formula &operator=(const std::string &_formulaAsText);
 
@@ -28,6 +29,7 @@ class Formula {
     std::string formula_as_text;
     bool is_valid;
     Number result;
+    bool syntax_error;
 
     void markSyntaxError();
 
