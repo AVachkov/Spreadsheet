@@ -22,10 +22,8 @@ struct Address // stored as actual spreadsheet indices (starting from 1).
     Address();
     Address(size_t _row, size_t _col);
     Address &operator=(const Address &rhs);
-    bool operator==(const Address &rhs); // TODO
 
     static bool isAddress(const std::string &s, Address &out);
-    // static Address parseAddress(const std::string &s); // use this inside isAddress
 };
 
 enum class NumberType
@@ -44,12 +42,9 @@ class Number
     Number();
     Number(int _wholeNumber);
     Number(double _decimalNumber);
-    Number(const std::string &s);
+
     double getValue() const;
     NumberType getType() const;
-
-    Number &operator=(int w);
-    Number &operator=(double d);
 
     Number operator+(Number rhs);
     Number operator-(Number rhs);
@@ -57,7 +52,7 @@ class Number
     Number operator/(Number rhs);
     Number operator^(Number rhs);
 
-    static bool parseNumber(const std::string &str, Number &number); // remove static
+    static bool parseNumber(const std::string &str, Number &number);
 
   private:
     NumberType type;

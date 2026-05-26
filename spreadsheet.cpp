@@ -54,13 +54,13 @@ void Spreadsheet::open(const std::string &_fileName)
     {
         std::cerr << "Table couldn't be loaded. Reason: " << e.what() << '\n';
         close();
-        return;
+        std::exit(1);
     }
     catch (const std::runtime_error &e)
     {
         std::cerr << "Error: " << e.what() << '\n';
         close();
-        return;
+        std::exit(1);
     }
 
     std::cout << "Successfully opened " << file_name << '\n';
@@ -417,7 +417,7 @@ void Spreadsheet::solveFormulasWithAdresses()
 Number Spreadsheet::getOrCalculateCellValue(Address a)
 {
     if (!isAddressValid(a))
-        return Number();
+        return Number(0);
 
     Cell *cell = cells[a.row - 1][a.col - 1];
 

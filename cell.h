@@ -20,8 +20,6 @@ class Cell
     virtual void print(std::ostream &out) const = 0;
     virtual size_t getContentLength() const = 0;
 
-    Address getAddress() const;
-
   protected:
     Address address;
 };
@@ -73,8 +71,6 @@ class TextCell : public Cell
     Number getNumericValue() const override;
     void print(std::ostream &out) const override;
     size_t getContentLength() const override;
-
-    std::string getText() const;
 
   private:
     std::string text;
@@ -131,7 +127,5 @@ class ErrorCell : public Cell
     void print(std::ostream &out) const override;
     size_t getContentLength() const override;
 };
-
-std::ostream &operator<<(std::ostream &out, const Cell *cell);
 
 #endif

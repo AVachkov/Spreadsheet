@@ -1,13 +1,13 @@
 10, Hello World!, 123.56
 123, , 
 20, 133.56, 0
-1230, 0, ERROR
+0, 0, 0
 ERROR, ERROR, ERROR
 , , 
 1234567.89, 20, 5
-123.56, 5, 123
+123.56, 5, 0
 133.56, 18, 30
-0, 1230, ERROR
+0, 0, 0
 133.56, ERROR, ERROR
 22, 57.2, 28.5
 44, 12, 64
@@ -22,6 +22,6 @@ ERROR, ERROR, 10
 8, -20, ERROR
 ERROR, 10, Здравей
 Hello world!, C:\temp\, "This is a quotation"
-10 20 30, ERROR, 246.123
+10 20 30, 0, 246.123
 45.6.7, 12, 4560
 Hello, , 

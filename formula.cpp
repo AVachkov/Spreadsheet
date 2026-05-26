@@ -160,22 +160,10 @@ bool Formula::isValid() const { return is_valid; }
 
 bool Formula::syntaxError() const { return syntax_error; }
 
-Formula &Formula::operator=(const std::string &_formulaAsText)
-{
-    formula_as_text = _formulaAsText;
-    return *this;
-}
-
 void Formula::markSyntaxError()
 {
     formula_as_text.clear();
     is_valid = false;
     result = Number();
     syntax_error = true;
-}
-
-std::ostream &operator<<(std::ostream &out, const Formula &formula)
-{
-    out << formula.getResult();
-    return out;
 }

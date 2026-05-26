@@ -3,7 +3,7 @@
 #include <cmath>
 #include <exception>
 #include <iostream>
-#include <string> // for std::stoi, std::stod
+#include <string>
 
 Address::Address() : row(1), col(1) {}
 
@@ -19,8 +19,6 @@ Address &Address::operator=(const Address &rhs)
 
     return *this;
 }
-
-bool Address::operator==(const Address &rhs) { return row == rhs.row && col == rhs.col; }
 
 bool Address::isAddress(const std::string &s, Address &out)
 {
@@ -71,17 +69,6 @@ Number::Number(int _wholeNumber) : wholeNumber(_wholeNumber), decimalNumber(0.0)
 
 Number::Number(double _decimalNumber) : wholeNumber(0), decimalNumber(_decimalNumber), type(NumberType::DECIMAL_NUMBER) {}
 
-Number::Number(const std::string &s) : wholeNumber(0), decimalNumber(0.0), type(NumberType::NONE)
-{
-    Number n;
-    if (parseNumber(s, n))
-    {
-        wholeNumber = n.wholeNumber;
-        decimalNumber = n.decimalNumber;
-        type = n.type;
-    }
-}
-
 NumberType Number::getType() const { return type; }
 
 double Number::getValue() const
@@ -94,31 +81,11 @@ double Number::getValue() const
     return 0.0;
 }
 
-Number &Number::operator=(int w)
-{
-    wholeNumber = w;
-    decimalNumber = 0.0;
-    type = NumberType::WHOLE_NUMBER;
-    return *this;
-}
-
-Number &Number::operator=(double d)
-{
-    wholeNumber = 0;
-    decimalNumber = d;
-    type = NumberType::DECIMAL_NUMBER;
-    return *this;
-}
-
 Number Number::operator+(Number rhs) { return getValue() + rhs.getValue(); }
 
 Number Number::operator-(Number rhs) { return getValue() - rhs.getValue(); }
 
-Number Number::operator*(Number rhs)
-{
-    // figure out the actual type after computation
-    return getValue() * rhs.getValue();
-}
+Number Number::operator*(Number rhs) { return getValue() * rhs.getValue(); }
 
 Number Number::operator/(Number rhs)
 {

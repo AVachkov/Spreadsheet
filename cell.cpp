@@ -4,8 +4,6 @@ Cell::Cell(Address _address) : address(_address) {}
 
 Cell::~Cell() {}
 
-Address Cell::getAddress() const { return address; }
-
 WholeNumberCell::WholeNumberCell(Address _address, int _wholeNumber) : Cell(_address), whole_number(_wholeNumber) {}
 
 Cell *WholeNumberCell::clone() const { return new WholeNumberCell(*this); }
@@ -67,7 +65,14 @@ Cell *TextCell::clone() const { return new TextCell(*this); }
 
 CellType TextCell::getType() const { return CellType::TEXT; }
 
-Number TextCell::getNumericValue() const { return Number(0); }
+Number TextCell::getNumericValue() const
+{
+    Number n;
+    if (Number::parseNumber(text, n))
+        return n;
+
+    return Number(0);
+}
 
 void TextCell::print(std::ostream &out) const { out << text; }
 
@@ -87,8 +92,6 @@ size_t TextCell::getContentLength() const // заради текст на кир
 
     return length;
 }
-
-std::string TextCell::getText() const { return text; }
 
 FormulaCell::FormulaCell(Address _address, const Formula &_formula) : Cell(_address), formula(_formula) {}
 
@@ -156,12 +159,6 @@ void EmptyCell::print(std::ostream &out) const { out << ""; }
 size_t EmptyCell::getContentLength() const { return 0; }
 
 std::string EmptyCell::getStatus() const { return status; }
-
-std::ostream &operator<<(std::ostream &out, const Cell *cell)
-{
-    cell->print(out);
-    return out;
-}
 
 ErrorCell::ErrorCell(Address _address) : Cell(_address) {}
 
