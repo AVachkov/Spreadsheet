@@ -30,6 +30,8 @@ size_t WholeNumberCell::getContentLength() const
     return res;
 }
 
+std::string WholeNumberCell::getRawContent() const { return std::to_string(whole_number); }
+
 DecimalNumberCell::DecimalNumberCell(Address _address, double _decimalNumber) : Cell(_address), decimal_number(_decimalNumber) {}
 
 Cell *DecimalNumberCell::clone() const { return new DecimalNumberCell(*this); }
@@ -42,7 +44,9 @@ void DecimalNumberCell::print(std::ostream &out) const { out << getFormattedStri
 
 size_t DecimalNumberCell::getContentLength() const { return getFormattedString().length(); }
 
-std::string DecimalNumberCell::getFormattedString() const // заради по-големи числа и научен запис на числа в поток
+std::string DecimalNumberCell::getRawContent() const { return getFormattedString(); }
+
+std::string DecimalNumberCell::getFormattedString() const
 {
     std::string s = std::to_string(decimal_number);
 
@@ -76,7 +80,10 @@ Number TextCell::getNumericValue() const
 
 void TextCell::print(std::ostream &out) const { out << text; }
 
-size_t TextCell::getContentLength() const // заради текст на кирилица
+// ЗАБЕЛЕЖКА: Логиката с побитовите маски за броене на UTF-8 символи
+// (за правилна работа с кирилица) е подсказана от генеративен модел.
+// Просто return text.length() не работи коректно за текст на кирилица
+size_t TextCell::getContentLength() const
 {
     size_t length = 0;
 
@@ -93,6 +100,21 @@ size_t TextCell::getContentLength() const // заради текст на кир
     return length;
 }
 
+std::string TextCell::getRawContent() const
+{
+    std::string escapedText = "";
+
+    for (char c : text)
+    {
+        if (c == '"' || c == '\\')
+            escapedText += '\\';
+
+        escapedText += c;
+    }
+
+    return "\"" + escapedText + "\"";
+}
+
 FormulaCell::FormulaCell(Address _address, const Formula &_formula) : Cell(_address), formula(_formula) {}
 
 Cell *FormulaCell::clone() const { return new FormulaCell(*this); }
@@ -101,7 +123,7 @@ CellType FormulaCell::getType() const { return CellType::FORMULA; }
 
 Number FormulaCell::getNumericValue() const { return formula.getResult(); }
 
-void FormulaCell::print(std::ostream &out) const // заради по-големи числа и научен запис на числа в поток
+void FormulaCell::print(std::ostream &out) const
 {
     switch (formula.getResult().getType())
     {
@@ -144,6 +166,8 @@ size_t FormulaCell::getContentLength() const
     return 1;
 }
 
+std::string FormulaCell::getRawContent() const { return formula.getFormulaText(); }
+
 Formula FormulaCell::getFormula() const { return formula; }
 
 EmptyCell::EmptyCell(Address _address, const std::string &_status) : Cell(_address), status(_status) {}
@@ -158,9 +182,13 @@ void EmptyCell::print(std::ostream &out) const { out << ""; }
 
 size_t EmptyCell::getContentLength() const { return 0; }
 
+std::string EmptyCell::getRawContent() const { return ""; }
+
 std::string EmptyCell::getStatus() const { return status; }
 
-ErrorCell::ErrorCell(Address _address) : Cell(_address) {}
+ErrorCell::ErrorCell(Address _address, const std::string &_originalContent) : Cell(_address), original_content(_originalContent)
+{
+}
 
 Cell *ErrorCell::clone() const { return new ErrorCell(*this); }
 
@@ -175,3 +203,5 @@ size_t ErrorCell::getContentLength() const
     const size_t ERROR_MESSAGE_SIZE = 5;
     return ERROR_MESSAGE_SIZE;
 }
+
+std::string ErrorCell::getRawContent() const { return original_content; }

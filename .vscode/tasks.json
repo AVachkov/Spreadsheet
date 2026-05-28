@@ -1,0 +1,28 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build Spreadsheet",
+      "type": "shell",
+      "command": "clang++",
+      "args": [
+        "-std=c++17",
+        "-g",
+        "-I${workspaceFolder}/include",
+        "${workspaceFolder}/src/*.cpp",
+        "-o",
+        "${workspaceFolder}/build/main"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": ["$gcc"]
+    }
+  ]
+}

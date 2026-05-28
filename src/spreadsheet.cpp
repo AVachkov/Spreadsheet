@@ -1,15 +1,11 @@
 #include "spreadsheet.h"
 #include "utilities.h"
-#include <cstring>
 #include <exception>
 #include <fstream>
-#include <iostream>
-#include <string>
-#include <vector>
 
-Spreadsheet::Spreadsheet() : is_open(false), file_name("") {}
+Spreadsheet::Spreadsheet() : is_open(false), file_path("") {}
 
-Spreadsheet::Spreadsheet(const Spreadsheet &original) : is_open(original.is_open), file_name(original.file_name)
+Spreadsheet::Spreadsheet(const Spreadsheet &original) : is_open(original.is_open), file_path(original.file_path)
 {
     copyfrom(original);
 }
@@ -26,22 +22,25 @@ Spreadsheet &Spreadsheet::operator=(const Spreadsheet &rhs)
 
 Spreadsheet::~Spreadsheet() { free(); }
 
-void Spreadsheet::open(const std::string &_fileName)
+void Spreadsheet::open(const std::string &_filePath)
 {
     if (is_open)
     {
-        std::cout << "File " << file_name << "already opened. To open another file, first close the current one.\n";
-        return;
+        throw std::invalid_argument("File " + file_path + " already open. To open another file, first close the current one.");
     }
 
-    if (_fileName.empty())
-        throw std::invalid_argument("File name cannot be empty.");
+    if (_filePath.length() < 4 ||
+        (_filePath.substr(_filePath.length() - 4) != ".txt" && _filePath.substr(_filePath.length() - 4) != ".csv"))
+    {
+        throw std::invalid_argument("Unsupported file format.");
+    }
 
-    file_name = _fileName;
-    std::ifstream file(file_name);
+    file_path = _filePath;
+    std::ifstream file(file_path);
     if (!file.is_open())
     {
-        std::ofstream createNewFile(file_name);
+        std::ofstream createNewFile(file_path);
+        is_open = true;
         return;
     }
 
@@ -49,76 +48,69 @@ void Spreadsheet::open(const std::string &_fileName)
     {
         is_open = true;
         deserialize(file);
+        file.close();
     }
     catch (const std::invalid_argument &e)
     {
-        std::cerr << "Table couldn't be loaded. Reason: " << e.what() << '\n';
         close();
-        std::exit(1);
+        throw;
     }
     catch (const std::runtime_error &e)
     {
-        std::cerr << "Error: " << e.what() << '\n';
         close();
-        std::exit(1);
+        throw;
     }
-
-    std::cout << "Successfully opened " << file_name << '\n';
 }
 
 void Spreadsheet::close()
 {
-    free();
+    if (!is_open)
+        throw std::runtime_error("No file is open.");
 
-    std::cout << "Successfully closed " << file_name << '\n';
-    file_name.clear();
-    is_open = false;
+    free();
 }
 
 void Spreadsheet::save() const
 {
     if (!is_open)
-        return;
+        throw std::runtime_error("No file is open.");
 
-    std::ofstream ofs(file_name);
+    std::ofstream ofs(file_path);
     ofs.clear();
     serialize(ofs);
-    std::cout << "Successfully saved " << file_name << '\n';
 }
 
-void Spreadsheet::saveas(const std::string &_fileName) const
+void Spreadsheet::saveas(const std::string &_filePath) const
 {
     if (!is_open)
-        return;
+        throw std::runtime_error("No file is open.");
 
-    if (_fileName.empty())
+    if (_filePath.empty())
         throw std::invalid_argument("File name cannot be empty.");
 
-    std::ofstream ofs(_fileName);
+    std::ofstream ofs(_filePath);
     serialize(ofs);
-    std::cout << "Successfully saved as " << _fileName << '\n';
 }
 
-void Spreadsheet::help() const
+void Spreadsheet::help(std::ostream &out) const
 {
-    std::cout << "The following commands are supported:\n";
-    std::cout << "open <file>     opens <file>\n";
-    std::cout << "close           closes currently open file\n";
-    std::cout << "save            saves the currently open file\n";
-    std::cout << "saveas <file>   saves the currently open file in <file>\n";
-    std::cout << "help            prints the information\n";
-    std::cout << "exit            exits the program\n";
-}
-
-void Spreadsheet::exit() const
-{
-    std::cout << "Exiting the program...\n";
-    std::exit(0);
+    out << "The following commands are supported:\n";
+    out << "open <file>                     opens <file>\n";
+    out << "close                           closes currently open file\n";
+    out << "save                            saves the currently open file\n";
+    out << "saveas <file>                   saves the currently open file in <file>\n";
+    out << "edit R<row>C<col> <new_value>   updates cell content with <new_value>\n";
+    out << "print                           displays the table in a formatted grid\n";
+    out << "help                            prints the information\n";
+    out << "exit                            exits the program\n";
 }
 
 void Spreadsheet::print(std::ostream &out) const
 {
-    if (!is_open || cells.empty())
+    if (!is_open)
+        throw std::runtime_error("No file is open.");
+
+    if (cells.empty())
         return;
 
     std::vector<size_t> longestTextInEachCol;
@@ -156,30 +148,41 @@ void Spreadsheet::print(std::ostream &out) const
     }
 }
 
-void Spreadsheet::edit(Address address, const Cell *newCell)
+void Spreadsheet::edit(Address address, const std::string &newValueStr)
 {
-    if (isAddressValid(address))
-    {
-        delete cells[address.row - 1][address.col - 1];
-        cells[address.row - 1][address.col - 1] = newCell->clone();
+    if (!is_open)
+        throw std::runtime_error("No file is open.");
 
-        try
-        {
-            solveFormulasWithAdresses();
-        }
-        catch (const std::runtime_error &e)
-        {
-            std::cerr << "Error: " << e.what() << '\n';
-        }
-    }
-    else
+    if (!isAddressValid(address))
+        throw std::invalid_argument("Address out of spreadsheet bounds.");
+
+    std::string newValCpy = newValueStr;
+    Cell *newCell = parseCell(newValCpy, address);
+
+    Cell *oldCell = cells[address.row - 1][address.col - 1];
+
+    cells[address.row - 1][address.col - 1] = newCell;
+
+    try
     {
-        std::cout << "Address out of spreadsheet bonds.\n";
+        solveFormulasWithAdresses();
+        delete oldCell;
+    }
+    catch (const std::runtime_error &e)
+    {
+        cells[address.row - 1][address.col - 1] = oldCell;
+        delete newCell;
+        throw;
     }
 }
 
+std::string Spreadsheet::getFilePath() const { return file_path; }
+
 void Spreadsheet::free()
 {
+    file_path.clear();
+    is_open = false;
+
     for (size_t r = 0; r < cells.size(); ++r)
     {
         for (size_t c = 0; c < cells[r].size(); ++c)
@@ -194,8 +197,9 @@ void Spreadsheet::free()
 
 void Spreadsheet::copyfrom(const Spreadsheet &original)
 {
-    file_name = original.file_name;
+    file_path = original.file_path;
     is_open = original.is_open;
+
     cells.reserve(original.cells.size());
     for (size_t r = 0; r < original.cells.size(); ++r)
     {
@@ -223,7 +227,7 @@ void Spreadsheet::serialize(std::ostream &out) const
                 isFirst = false;
             else
                 out << ", ";
-            cell->print(out);
+            out << cell->getRawContent();
         }
         out << '\n';
     }
@@ -241,6 +245,8 @@ void Spreadsheet::deserialize(std::istream &in)
     try
     {
         bool escapeChar = false;
+        bool inQuotes = false;
+        Cell *cell = nullptr;
 
         char ch;
         while (in.get(ch))
@@ -250,17 +256,27 @@ void Spreadsheet::deserialize(std::istream &in)
                 token += ch;
                 escapeChar = false;
             }
-            else if (ch == ',')
+            else if (ch == '"')
             {
-                parseCell(token, row, rowNumber);
+                inQuotes = !inQuotes;
+                token += ch;
+            }
+            else if (ch == ',' && !inQuotes)
+            {
+                cell = parseCell(token, Address(rowNumber, row.size() + 1));
+                row.push_back(cell);
+
                 token.clear();
             }
-            else if (ch == '\n')
+            else if (ch == '\n' && !inQuotes)
             {
-                parseCell(token, row, rowNumber);
+                cell = parseCell(token, Address(rowNumber, row.size() + 1));
+                row.push_back(cell);
                 cells.push_back(row);
+
                 token.clear();
                 row.clear();
+
                 ++rowNumber;
             }
             else if (ch == '\r')
@@ -278,10 +294,10 @@ void Spreadsheet::deserialize(std::istream &in)
             }
         }
 
-        // if the file didn't end with \n
-        if (!token.empty())
+        if (!token.empty() || !row.empty())
         {
-            parseCell(token, row, rowNumber);
+            cell = parseCell(token, Address(rowNumber, row.size() + 1));
+            row.push_back(cell);
             cells.push_back(row);
         }
     }
@@ -301,99 +317,99 @@ void Spreadsheet::deserialize(std::istream &in)
     solveFormulasWithAdresses();
 }
 
-void Spreadsheet::parseCell(std::string &data, std::vector<Cell *> &row, size_t rowNumber)
+Cell *Spreadsheet::parseCell(const std::string &data, Address a)
 {
-    trim(data);
+    std::string dataCpy = data;
+    trim(dataCpy);
     Number number;
 
-    if (data.empty())
+    if (dataCpy.empty())
     {
-        row.push_back(new EmptyCell(Address(rowNumber, row.size() + 1)));
+        return new EmptyCell(a);
     }
-    else if (Number::parseNumber(data, number))
+    else if (Number::parseNumber(dataCpy, number))
     {
         if (number.getType() == NumberType::WHOLE_NUMBER)
         {
-            row.push_back(new WholeNumberCell(Address(rowNumber, row.size() + 1), number.wholeNumber));
+            return new WholeNumberCell(a, number.wholeNumber);
         }
         else if (number.getType() == NumberType::DECIMAL_NUMBER)
         {
-            row.push_back(new DecimalNumberCell(Address(rowNumber, row.size() + 1), number.decimalNumber));
+            return new DecimalNumberCell(a, number.decimalNumber);
         }
     }
-    else if (!data.empty() && data[0] == '=')
+    else if (!dataCpy.empty() && dataCpy[0] == '=')
     {
         std::vector<std::string> tokens_from_expression;
         std::vector<char> operators_from_expression;
-        tokenize(data, tokens_from_expression, operators_from_expression);
+        tokenize(dataCpy, tokens_from_expression, operators_from_expression);
 
-        Formula formula(data);
+        Formula formula(dataCpy);
         formula.solveFormula(tokens_from_expression, operators_from_expression);
 
         if (formula.syntaxError())
         {
-            row.push_back(new ErrorCell(Address(rowNumber, row.size() + 1)));
-        }
-        else if ((!data.empty() && data[0] == '=') || formula.isValid())
-        {
-            row.push_back(new FormulaCell(Address(rowNumber, row.size() + 1), formula));
+            return new ErrorCell(a, dataCpy);
         }
         else
         {
-            row.push_back(new ErrorCell(Address(rowNumber, row.size() + 1)));
+            return new FormulaCell(a, formula);
         }
     }
     else
     {
-        if (isText(data))
+        if (isText(dataCpy))
         {
-            std::string text = removeQuotesFromText(data);
+            std::string text = removeQuotesFromText(dataCpy);
             processBackslashInText(text);
-            row.push_back(new TextCell(Address(rowNumber, row.size() + 1), text));
+
+            return new TextCell(a, text);
         }
         else
         {
-            handleUnknownCell(data, rowNumber, row.size() + 1);
+            handleUnknownCell(dataCpy, a);
         }
     }
+
+    return new ErrorCell(a, dataCpy);
 }
 
-void Spreadsheet::tokenize(std::string &formula, std::vector<std::string> &tokensOut, std::vector<char> &operatorsOut)
+void Spreadsheet::tokenize(const std::string &formula, std::vector<std::string> &tokensOut, std::vector<char> &operatorsOut)
 {
-    clearUnnecessaryWhitespaces(formula);
+    std::string formulaCpy = formula;
+    clearUnnecessaryWhitespaces(formulaCpy);
 
     tokensOut.clear();
     operatorsOut.clear();
 
     size_t i = 1;
-    if (formula.size() >= 2 && isOperator(formula[1]))
-    // handle leading operator for the first number (e.g. -5, +12)
+    if (formulaCpy.size() >= 2 && isOperator(formulaCpy[1]))
     {
         std::string data;
-        data += formula[1];
+        data += formulaCpy[1];
         ++i;
-        while (i < formula.size() && !isOperator(formula[i]))
+        while (i < formulaCpy.size() && !isOperator(formulaCpy[i]))
         {
-            data += formula[i];
+            data += formulaCpy[i];
             ++i;
         }
 
         tokensOut.push_back(data);
     }
 
-    while (i < formula.size())
+    while (i < formulaCpy.size())
     {
-        if (isOperator(formula[i]))
+        if (isOperator(formulaCpy[i]))
         {
-            operatorsOut.push_back(formula[i]);
+            operatorsOut.push_back(formulaCpy[i]);
             ++i;
         }
         else
         {
             std::string data;
-            while (i < formula.size() && !isOperator(formula[i]))
+            while (i < formulaCpy.size() && !isOperator(formulaCpy[i]))
             {
-                data += formula[i];
+                data += formulaCpy[i];
                 ++i;
             }
 
@@ -463,7 +479,7 @@ Number Spreadsheet::getOrCalculateCellValue(Address a)
         catch (const std::runtime_error &e)
         {
             delete cells[a.row - 1][a.col - 1];
-            cells[a.row - 1][a.col - 1] = new ErrorCell(a);
+            cells[a.row - 1][a.col - 1] = new ErrorCell(a, formulaText);
             throw;
         }
 
@@ -471,7 +487,7 @@ Number Spreadsheet::getOrCalculateCellValue(Address a)
 
         if (formula.syntaxError())
         {
-            cells[a.row - 1][a.col - 1] = new ErrorCell(a);
+            cells[a.row - 1][a.col - 1] = new ErrorCell(a, formulaText);
             return Number(0);
         }
         else
@@ -481,7 +497,7 @@ Number Spreadsheet::getOrCalculateCellValue(Address a)
         }
     }
 
-    return Number(0);
+    return Number(cell->getNumericValue());
 }
 
 void Spreadsheet::processBackslashInText(std::string &token)
@@ -492,7 +508,7 @@ void Spreadsheet::processBackslashInText(std::string &token)
     bool backslash = false;
     for (int i = 0; i < token.size(); ++i)
     {
-        if ((backslash && token[i] == '\"') || (backslash && token[i] == '\\') || (backslash && token[i] == ','))
+        if (backslash && (token[i] == '"' || token[i] == '\\' || token[i] == ','))
         {
             token.erase(i - 1, 1);
             --i;
@@ -523,9 +539,9 @@ std::string Spreadsheet::removeQuotesFromText(const std::string &text)
     return result;
 }
 
-bool Spreadsheet::isText(const std::string &s) { return s.size() >= 2 && s[0] == '\"' && s[s.size() - 1] == '\"'; }
+bool Spreadsheet::isText(const std::string &s) { return s.size() >= 2 && s[0] == '"' && s[s.size() - 1] == '"'; }
 
-void Spreadsheet::handleUnknownCell(const std::string &s, size_t rowNumber, size_t colNumber)
+void Spreadsheet::handleUnknownCell(const std::string &s, Address a)
 {
     size_t i = 0;
     std::string arg = "";
@@ -541,8 +557,7 @@ void Spreadsheet::handleUnknownCell(const std::string &s, size_t rowNumber, size
             Number dummy;
             if (Number::parseNumber(arg, dummy) || (!arg.empty() && arg[0] == '='))
             {
-                throw std::runtime_error("missing comma detected on row: " + std::to_string(rowNumber) + " after \"" + arg +
-                                         "\"");
+                throw std::runtime_error("Missing comma detected on row: " + std::to_string(a.row) + " after \"" + arg + "\"");
             }
 
             ++i;
@@ -555,11 +570,11 @@ void Spreadsheet::handleUnknownCell(const std::string &s, size_t rowNumber, size
         Number dummy;
         if (Number::parseNumber(arg, dummy) || (!arg.empty() && arg[0] == '='))
         {
-            throw std::runtime_error("missing comma detected on row: " + std::to_string(rowNumber) + " after \"" + arg + "\"");
+            throw std::runtime_error("Missing comma detected on row: " + std::to_string(a.row) + " after \"" + arg + "\"");
         }
     }
 
-    throw std::runtime_error("row " + std::to_string(rowNumber) + ", col " + std::to_string(colNumber) + ", " + s +
+    throw std::runtime_error("row " + std::to_string(a.row) + ", col " + std::to_string(a.col) + ", " + s +
                              " is unknown data type");
 }
 
@@ -569,7 +584,6 @@ void Spreadsheet::clearUnnecessaryWhitespaces(std::string &s)
     while (i < s.size())
     {
         if (isdigit(s[i]))
-        // skip whitespaces between digits
         {
             bool isThereOperatorInBetween = false;
             int charsBetweenDigits = 0;

@@ -1,8 +1,6 @@
 #include "formula.h"
 #include "utilities.h"
 #include <iostream>
-#include <string>
-#include <vector>
 
 Formula::Formula(const std::string &formulaAsText)
     : formula_as_text(formulaAsText), result(), is_valid(false), syntax_error(false)

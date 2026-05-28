@@ -1,9 +1,6 @@
 #include "baseTypes.h"
 #include <cctype>
 #include <cmath>
-#include <exception>
-#include <iostream>
-#include <string>
 
 Address::Address() : row(1), col(1) {}
 
