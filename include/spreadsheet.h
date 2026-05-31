@@ -36,7 +36,7 @@ class Spreadsheet
     void close();
 
     /**
-     * @brief Записва промените обратно в текушия отворен файл.
+     * @brief Записва промените обратно в текущия отворен файл.
      * @throw std::runtime_error При опит за запис без отворен файл.
      */
     void save() const;
@@ -45,7 +45,7 @@ class Spreadsheet
      * @brief Запазва данните в нов файл.
      * @param _filePath Път до новия файл
      * @throw std::runtime_error При опит за запис без отворен файл.
-     * @throw std::invalid_argument при празен път към файл.
+     * @throw std::invalid_argument При празен път към файл.
      */
     void saveas(const std::string &_filePath) const;
 
@@ -117,7 +117,7 @@ class Spreadsheet
      * @brief Преизчислява всички формули, които съдържат препратки
      * към други клетки.
      */
-    void solveFormulasWithAdresses();
+    void solveFormulasWithAddresses();
 
     /**
      * @brief Връща или преизчислява рекурсивно стойността на дадена клетка.

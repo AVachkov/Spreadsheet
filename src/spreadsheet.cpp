@@ -158,20 +158,19 @@ void Spreadsheet::edit(Address address, const std::string &newValueStr)
 
     std::string newValCpy = newValueStr;
     Cell *newCell = parseCell(newValCpy, address);
-
     Cell *oldCell = cells[address.row - 1][address.col - 1];
 
     cells[address.row - 1][address.col - 1] = newCell;
 
     try
     {
-        solveFormulasWithAdresses();
+        solveFormulasWithAddresses();
         delete oldCell;
     }
     catch (const std::runtime_error &e)
     {
+        delete cells[address.row - 1][address.col - 1];
         cells[address.row - 1][address.col - 1] = oldCell;
-        delete newCell;
         throw;
     }
 }
@@ -314,7 +313,7 @@ void Spreadsheet::deserialize(std::istream &in)
 
     alignAllCells();
 
-    solveFormulasWithAdresses();
+    solveFormulasWithAddresses();
 }
 
 Cell *Spreadsheet::parseCell(const std::string &data, Address a)
@@ -419,7 +418,7 @@ void Spreadsheet::tokenize(const std::string &formula, std::vector<std::string> 
     }
 }
 
-void Spreadsheet::solveFormulasWithAdresses()
+void Spreadsheet::solveFormulasWithAddresses()
 {
     for (int i = 0; i < cells.size(); ++i)
     {

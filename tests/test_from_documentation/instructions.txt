@@ -1,0 +1,5 @@
+open tests/test_from_documentation/table.txt
+edit R2C1 =R1C1+R1C2
+edit R2C2 =R3C1+R3C2
+edit R4C1 =R1C4/R2C4
+edit R2C1 =R3C3+R2C1

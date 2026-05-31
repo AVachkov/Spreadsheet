@@ -19,3 +19,5 @@ build/
 # Междинни обектни файлове
 *.o
 *.obj
+
+documentation/
