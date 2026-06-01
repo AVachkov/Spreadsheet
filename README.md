@@ -19,8 +19,8 @@
 **За *Mac* / *Linux*:**
 
 ```bash
-clang++ -std=c++17 -Iinclude src/*.cpp -o build/main
-./build/main
+clang++ -std=c++17 -Iinclude src/*.cpp -o main
+./main
 
 ```
 
